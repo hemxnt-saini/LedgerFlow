@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Event monitor</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+      th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+      th { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+      tbody tr { cursor: pointer; }
+      tbody tr:hover { background: var(--surface-2); }
+      tbody tr.fresh { animation: flash 1s ease; }
+      @keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; }
+      .scroll { max-height: 460px; overflow: auto; }
+      .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+      @media (max-width: 760px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      .stage { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 11px; }
+      .stage .n { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .stage .t { font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+      .stage .d { font-size: 0.72rem; color: var(--muted); margin-top: 3px; white-space: normal; }
+      pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 11px; overflow: auto; font-size: 0.76rem; margin: 8px 0 0; }
+      .lifecycle { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.78rem; }
+      .lifecycle .node { border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; background: var(--surface-2); }
+      .lifecycle .arrow { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">▤</div>
+        <div>
+          <h1>Event monitor</h1>
+          <div class="tiny muted">
+            <span id="live-dot" class="live-dot off"></span>
+            <span id="live-label">connecting…</span>
+            · <a href="index.html">wallet</a> · <a href="stream.html">Kafka control room</a>
+          </div>
+        </div>
+      </div>
+      <button id="clear" class="ghost small">Clear</button>
+    </header>
+
+    <main>
+      <div class="card">
+        <div class="card-head"><h2>What you are looking at</h2></div>
+        <p class="small muted" style="margin-top: -4px">
+          Every row below is a real event that travelled the whole pipeline. The
+          timings are measured, not simulated: the write side stamps the commit,
+          the outbox publisher stamps the moment it actually reached Kafka, and
+          the query service stamps arrival and projection. The gap between the
+          first and last column is exactly the eventual-consistency window the
+          wallet warns about.
+        </p>
+        <div class="lifecycle" style="margin-top: 12px">
+          <span class="node">POST /payments</span><span class="arrow">→</span>
+          <span class="node">validate</span><span class="arrow">→</span>
+          <span class="node">Postgres commit + outbox row</span><span class="arrow">→</span>
+          <span class="node">poller publishes to Kafka</span><span class="arrow">→</span>
+          <span class="node">consumer projects to Redis</span><span class="arrow">→</span>
+          <span class="node">SSE to this page</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Stage latency</h2><span class="tiny muted" id="sample-size"></span></div>
+        <div class="flow">
+          <div class="stage">
+            <div class="n">Commit → published</div>
+            <div class="t" id="s-outbox">–</div>
+            <div class="d">Outbox poller pickup. Bounded by its poll interval.</div>
+          </div>
+          <div class="stage">
+            <div class="n">Published → received</div>
+            <div class="t" id="s-transport">–</div>
+            <div class="d">Kafka produce, store and fetch.</div>
+          </div>
+          <div class="stage">
+            <div class="n">Received → projected</div>
+            <div class="t" id="s-projection">–</div>
+            <div class="d">Writing the Redis read model.</div>
+          </div>
+          <div class="stage">
+            <div class="n">End to end</div>
+            <div class="t" id="s-total">–</div>
+            <div class="d">Write commits until the read side can answer.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="card">
+            <div class="card-head"><h2>Live events</h2><span class="tiny muted" id="event-count">0 events</span></div>
+            <div class="scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th><th>Event</th><th>Payment</th>
+                    <th class="num">Outbox</th><th class="num">Transport</th>
+                    <th class="num">Project</th><th class="num">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="events"></tbody>
+              </table>
+            </div>
+            <div id="events-empty" class="empty" style="margin-top: 10px">
+              Waiting for events. Send a payment in the wallet and watch them arrive.
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-head"><h2>Money in flight</h2></div>
+            <div class="stat" style="margin-bottom: 10px">
+              <div class="k">Clearing account</div>
+              <div class="v" id="clearing">$0.00</div>
+            </div>
+            <p class="tiny muted" style="margin: 0">
+              A payment is two transactions, not one. Between them the money is
+              neither the sender's nor the receiver's - it belongs to the
+              clearing account. That is why the ledger still balances mid-saga,
+              and why stranded money can always be found and returned.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Event types seen</h2></div>
+            <div id="types" class="list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Selected event</h2></div>
+            <div id="detail" class="tiny muted">Click a row to inspect its payload and timings.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="dev.js"></script>
+  </body>
+</html>
