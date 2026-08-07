@@ -1,0 +1,111 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments
+      POSTGRES_DB: payments
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U payments -d payments']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # KRaft mode - no Zookeeper. 9092 is for other containers, 9094 for the host.
+  kafka:
+    # Bitnami moved their published images to the bitnamilegacy org in 2025;
+    # docker.io/bitnami/kafka:3.7 no longer resolves. Same image.
+    image: bitnamilegacy/kafka:3.7
+    ports:
+      - '9094:9094'
+    environment:
+      KAFKA_CFG_NODE_ID: '0'
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      # Three partitions so partitioning is real and visible: order is
+      # guaranteed per key, not across the topic. The projection is written in
+      # commutative deltas so that is safe.
+      KAFKA_CFG_NUM_PARTITIONS: '3'
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      ALLOW_PLAINTEXT_LISTENER: 'yes'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          '/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+
+  payment-service:
+    restart: unless-stopped
+    build: ./services/payment-service
+    ports:
+      - '4000:4000'
+    environment:
+      PORT: '4000'
+      DATABASE_URL: postgres://payments:payments@postgres:5432/payments
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: payment-events
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4000/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ledger-query-service:
+    restart: unless-stopped
+    build: ./services/ledger-query-service
+    ports:
+      - '4001:4001'
+    environment:
+      PORT: '4001'
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: payment-events
+      KAFKA_GROUP_ID: ledger-query-service
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - '8080:80'
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - payment-service
+      - ledger-query-service
