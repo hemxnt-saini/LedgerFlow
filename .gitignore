@@ -1,0 +1,14 @@
+node_modules/
+dist/
+
+# macOS
+.DS_Store
+
+# Logs and local environment
+*.log
+.env
+.env.local
+
+# Local working documents, not part of the shipped project
+TESTING.md
+product_features.md
