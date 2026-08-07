@@ -1,0 +1,167 @@
+# VS Code REST Client (humao.rest-client) - click "Send Request" above each block.
+# Run scripts/seed.sh first, then paste account ids into @alice / @bob / @carol.
+
+@write = http://localhost:4000
+@read  = http://localhost:4001
+
+@alice = PASTE_ACCOUNT_ID_HERE
+@bob   = PASTE_ACCOUNT_ID_HERE
+@carol = PASTE_LOW_BALANCE_ACCOUNT_ID_HERE
+@paymentId = PASTE_PAYMENT_ID_HERE
+
+# The clearing account is fixed and the same in every environment.
+@clearing = 00000000-0000-4000-8000-000000000001
+
+### 1. Health - command side
+GET {{write}}/health
+
+### 2. Health - query side (also reports how many browsers are subscribed)
+GET {{read}}/health
+
+### 3. List wallets (Postgres, command side). System accounts are hidden.
+GET {{write}}/accounts
+
+### 4. Same list including the clearing account
+GET {{write}}/accounts?includeSystem=true
+
+### 5. Create a wallet
+POST {{write}}/accounts
+Content-Type: application/json
+
+{ "name": "Dana", "initialBalanceCents": 25000 }
+
+### 6. Send a payment - leg 1 only
+# Expect: HTTP 201 with status PROCESSING. The sender has already been debited
+# and the money is sitting in the clearing account; the receiver has NOT been
+# paid yet. That is the point of the saga.
+POST {{write}}/payments
+Content-Type: application/json
+Idempotency-Key: demo-key-001
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 2500, "note": "lunch" }
+
+### 7. Look immediately - the money is in clearing, in nobody's wallet
+GET {{write}}/accounts?includeSystem=true
+
+### 8. A second later, leg 2 has run: COMPLETED, clearing back to zero
+GET {{write}}/accounts?includeSystem=true
+
+### 9. The payment and its ledger legs (AUTHORISE then SETTLE, 4 rows)
+GET {{write}}/payments/{{paymentId}}
+
+### 10. Resend request 6 identically - idempotency
+# Expect: HTTP 200 (not 201), header Idempotent-Replay: true, the same payment
+# id, and no second debit.
+POST {{write}}/payments
+Content-Type: application/json
+Idempotency-Key: demo-key-001
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 2500, "note": "lunch" }
+
+### 11. Same key, DIFFERENT payment - expect 409 IDEMPOTENCY_KEY_REUSED
+POST {{write}}/payments
+Content-Type: application/json
+Idempotency-Key: demo-key-001
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 9999 }
+
+### 12. NO Idempotency-Key at all - the server derives one
+# Expect: 201 and a response header `Idempotency-Key: auto:<hash>`.
+POST {{write}}/payments
+Content-Type: application/json
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 4242 }
+
+### 13. Send 12 again - still no key, still not charged twice
+POST {{write}}/payments
+Content-Type: application/json
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 4242 }
+
+### 14. Make a payment get STUCK on purpose
+# Leg 1 succeeds, leg 2 is made to fail. The money leaves Alice, never reaches
+# Bob, and sits in clearing as AWAITING_REFUND. This is the only situation a
+# refund exists for.
+POST {{write}}/payments
+Content-Type: application/json
+Idempotency-Key: demo-stuck-001
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 1500, "simulateFailure": true }
+
+### 15. Watch it strand - status AWAITING_REFUND, money in clearing
+GET {{write}}/accounts?includeSystem=true
+
+### 16. Refund it (paste the id from 14). Or wait ~4s and the worker does it.
+POST {{write}}/payments/{{paymentId}}/refund
+
+### 17. Refund it again - expect 409 NOT_REFUNDABLE_FROM_REFUNDED
+POST {{write}}/payments/{{paymentId}}/refund
+
+### 18. Refund a COMPLETED payment - expect 409 NOT_REFUNDABLE_FROM_COMPLETED
+# The money arrived. There is nothing to recover.
+POST {{write}}/payments/{{paymentId}}/refund
+
+### 19. Insufficient funds - Carol only has 500 cents
+# Expect: HTTP 201 with status FAILED. No money moved, nothing entered
+# clearing, and no ledger rows were written at all.
+POST {{write}}/payments
+Content-Type: application/json
+Idempotency-Key: demo-broke-001
+
+{ "fromAccountId": "{{carol}}", "toAccountId": "{{bob}}", "amountCents": 999999 }
+
+### 20. Payments involving one account (command side)
+GET {{write}}/payments?accountId={{alice}}&limit=20
+
+# --- Read side: Redis only, projected from Kafka ------------------------------
+
+### 21. Balance from the read model
+GET {{read}}/accounts/{{alice}}/balance
+
+### 22. Every balance in one call
+GET {{read}}/balances?ids={{alice}},{{bob}},{{carol}}
+
+### 23. Transaction history - one row per payment, current status
+GET {{read}}/accounts/{{alice}}/transactions?limit=20
+
+### 24. Statistics - counters maintained by the projection, O(1) to read
+GET {{read}}/accounts/{{alice}}/stats
+
+### 25. The global activity ticker
+GET {{read}}/activity?limit=20
+
+### 26. Measured pipeline latencies per event
+GET {{read}}/pipeline?limit=20
+
+### 27. The live event stream (SSE). Leave it running and send a payment.
+GET {{read}}/events/stream
+Accept: text/event-stream
+
+# --- Validation ---------------------------------------------------------------
+
+### 28. Self-transfer - expect 400 SAME_ACCOUNT
+POST {{write}}/payments
+Content-Type: application/json
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{alice}}", "amountCents": 100 }
+
+### 29. Fractional cents - expect 400 INVALID_AMOUNT
+POST {{write}}/payments
+Content-Type: application/json
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{bob}}", "amountCents": 1.5 }
+
+### 30. Paying the clearing account - expect 400 SYSTEM_ACCOUNT_NOT_PAYABLE
+POST {{write}}/payments
+Content-Type: application/json
+
+{ "fromAccountId": "{{alice}}", "toAccountId": "{{clearing}}", "amountCents": 100 }
+
+### 31. Unknown account - expect 404 ACCOUNT_NOT_FOUND
+POST {{write}}/payments
+Content-Type: application/json
+
+{ "fromAccountId": "00000000-0000-4000-8000-000000000009", "toAccountId": "{{bob}}", "amountCents": 100 }
+
+### 32. Unknown route returns JSON, not an HTML error page
+GET {{write}}/no/such/route
