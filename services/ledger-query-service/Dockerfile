@@ -9,4 +9,4 @@ COPY src ./src
 RUN npm run build
 
 EXPOSE 4001
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server.js"]
