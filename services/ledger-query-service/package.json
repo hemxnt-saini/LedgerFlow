@@ -2,11 +2,11 @@
   "name": "ledger-query-service",
   "version": "1.0.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest"
   },
