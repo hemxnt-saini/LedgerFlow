@@ -1,0 +1,64 @@
+/* Scoped to the page so the two monitors can size their tables differently. */
+
+.page-pipeline table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.page-pipeline th,
+.page-pipeline td {
+  text-align: left;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.page-pipeline th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.page-pipeline tbody tr { cursor: pointer; }
+.page-pipeline tbody tr:hover { background: var(--surface-2); }
+.page-pipeline tbody tr.fresh { animation: pipeline-flash 1s ease; }
+@keyframes pipeline-flash {
+  from { background: var(--accent-soft); }
+  to { background: transparent; }
+}
+.page-pipeline td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.page-pipeline .scroll { max-height: 460px; overflow: auto; }
+
+.page-pipeline .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) {
+  .page-pipeline .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.page-pipeline .stage {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px;
+}
+.page-pipeline .stage .n {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.page-pipeline .stage .t { font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.page-pipeline .stage .d { font-size: 0.72rem; color: var(--muted); margin-top: 3px; white-space: normal; }
+
+.page-pipeline pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px;
+  overflow: auto;
+  font-size: 0.76rem;
+  margin: 8px 0 0;
+}
+
+.page-pipeline .lifecycle { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.78rem; }
+.page-pipeline .lifecycle .node {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: var(--surface-2);
+}
+.page-pipeline .lifecycle .arrow { color: var(--muted); }
