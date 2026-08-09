@@ -30,4 +30,4 @@ create "Priya"   75000   # $750.00
 
 echo
 echo "Open http://localhost:8080 and pick one to sign in as."
-echo "The event monitor is at http://localhost:8080/dev.html"
+echo "The event monitor is at http://localhost:8080/pipeline"

@@ -29,8 +29,8 @@ open http://localhost:8080
 | Page | What it shows |
 | --- | --- |
 | `/` | The wallet — send money, history, live balances |
-| `/dev.html` | Measured pipeline latency, stage by stage |
-| `/stream.html` | Kafka: partitions, offsets, consumer lag, replay controls |
+| `/pipeline` | Measured pipeline latency, stage by stage |
+| `/kafka` | Kafka: partitions, offsets, consumer lag, replay controls |
 
 ## The core idea: a payment is a saga, not a transfer
 
@@ -134,7 +134,8 @@ SELECT sum(balance_cents) FROM accounts;   -- must always be 0
 ## Stack
 
 Node 20 · TypeScript · Express · Postgres 16 · Redis 7 · Kafka (KRaft) ·
-Docker Compose. Frontend is plain HTML/CSS/JS — no framework, no build step.
+Docker Compose. Frontend is React 18 + Vite, built to static assets and served
+by nginx.
 
 ## API
 
