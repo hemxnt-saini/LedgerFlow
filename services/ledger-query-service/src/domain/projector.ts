@@ -14,6 +14,8 @@
 export type PaymentEvent =
   | AccountCreated
   | PaymentInitiated
+  | PaymentHeld
+  | PaymentApproved
   | PaymentRetrying
   | PaymentCompleted
   | PaymentFailed
@@ -43,6 +45,24 @@ interface PaymentEventBase {
 /** Leg 1 committed: sender debited, funds held in clearing. */
 export interface PaymentInitiated extends PaymentEventBase {
   type: 'payment.initiated';
+}
+
+/**
+ * Authorised, then stopped by the risk screen. The sender has been debited
+ * exactly as for `payment.initiated` - the funds are in clearing - but no
+ * worker will move it on until a person decides.
+ */
+export interface PaymentHeld extends PaymentEventBase {
+  type: 'payment.held';
+  holdReasons?: string[];
+}
+
+/**
+ * A reviewer released the funds. No money moves here: the payment simply
+ * rejoins the settlement path it was taken off.
+ */
+export interface PaymentApproved extends PaymentEventBase {
+  type: 'payment.approved';
 }
 
 /**
@@ -109,6 +129,10 @@ export const APPLIED_EVENTS_KEY = 'projection:applied';
 /** Read-model status implied by each event. One row per payment, mutated in place. */
 const STATUS_BY_EVENT = {
   'payment.initiated': 'PROCESSING',
+  'payment.held': 'HELD_FOR_REVIEW',
+  // Released by a reviewer and back on the ordinary path - the settle leg
+  // will take it from here.
+  'payment.approved': 'PROCESSING',
   // Still in flight: a retry is not a new state, it is the same state with
   // another attempt spent.
   'payment.settlement_retrying': 'PROCESSING',
@@ -180,11 +204,13 @@ async function project(redis: RedisLike, event: PaymentEvent): Promise<void> {
   // model is correct at every step of the saga - not only at the end.
   //
   //   initiated  sender -= amount   (money is now in clearing)
+  //   held       sender -= amount   (authorised too, just not released yet)
   //   completed  receiver += amount (clearing paid it out)
   //   refunded   sender += amount   (clearing gave it back)
-  //   failed/stuck  no balance change
+  //   approved/failed/stuck  no balance change
   switch (event.type) {
     case 'payment.initiated':
+    case 'payment.held':
       await redis.hincrby(accountKey(event.fromAccountId), 'balanceCents', -event.amountCents);
       break;
     case 'payment.completed':
@@ -224,7 +250,11 @@ async function upsertPayment(
 
   // Score by the initiating event so a payment keeps its place in the feed as
   // it moves through the saga instead of jumping to the top on every update.
-  if (event.type === 'payment.initiated' || event.type === 'payment.failed') {
+  if (
+    event.type === 'payment.initiated' ||
+    event.type === 'payment.held' ||
+    event.type === 'payment.failed'
+  ) {
     await redis.hset(paymentKey(event.paymentId), { createdAt: event.occurredAt });
   }
   const score = Date.parse(event.occurredAt);
