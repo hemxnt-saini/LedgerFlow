@@ -39,3 +39,15 @@ export const getPayment = (id: string) =>
 /** Manual compensation. Only stranded money can be refunded. */
 export const refundPayment = (id: string) =>
   request<Payment>(`${WRITE_URL}/payments/${id}/refund`, { method: 'POST' });
+
+/** Payments whose funds are held in clearing pending a decision. */
+export const listReviews = (limit = 50) =>
+  request<{ reviews: Payment[] }>(`${WRITE_URL}/payments/reviews?limit=${limit}`);
+
+/** Release held funds - the payment rejoins the ordinary settlement path. */
+export const approvePayment = (id: string) =>
+  request<Payment>(`${WRITE_URL}/payments/${id}/approve`, { method: 'POST' });
+
+/** Refuse held funds - compensated back to the sender. */
+export const rejectPayment = (id: string) =>
+  request<Payment>(`${WRITE_URL}/payments/${id}/reject`, { method: 'POST' });

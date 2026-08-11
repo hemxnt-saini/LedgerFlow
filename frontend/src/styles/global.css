@@ -231,6 +231,7 @@ label.field > span { display: block; font-size: 0.78rem; color: var(--muted); ma
 .badge.COMPLETED { background: var(--good-soft); color: var(--good); }
 .badge.FAILED { background: var(--bad-soft); color: var(--bad); }
 .badge.AWAITING_REFUND { background: var(--warn-soft); color: var(--warn); }
+.badge.HELD_FOR_REVIEW { background: var(--warn-soft); color: var(--warn); }
 .badge.REFUNDED { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
 
 .empty {

@@ -2,6 +2,8 @@
 
 export type PaymentStatus =
   | 'PROCESSING'
+  /** Authorised and secured in clearing, waiting on a reviewer. */
+  | 'HELD_FOR_REVIEW'
   | 'COMPLETED'
   | 'FAILED'
   | 'AWAITING_REFUND'
@@ -40,6 +42,8 @@ export interface Payment {
   attempts: number;
   maxAttempts: number;
   nextAttemptAt: string;
+  /** Which risk rules stopped it. Empty unless held. */
+  holdReasons: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -214,6 +218,8 @@ export interface Stats {
 export type EventType =
   | 'account.created'
   | 'payment.initiated'
+  | 'payment.held'
+  | 'payment.approved'
   | 'payment.settlement_retrying'
   | 'payment.completed'
   | 'payment.failed'

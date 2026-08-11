@@ -2,6 +2,7 @@ import type { ActivityEntry, PaymentStatus } from '../types/api';
 
 export const STATUS_LABEL: Record<PaymentStatus, string> = {
   PROCESSING: 'Processing',
+  HELD_FOR_REVIEW: 'Held for review',
   COMPLETED: 'Completed',
   FAILED: 'Failed',
   AWAITING_REFUND: 'Awaiting refund',
@@ -24,6 +25,7 @@ const REASON_LABEL: Record<string, string> = {
   AMOUNT_ABOVE_LIMIT: 'That is more than your per-payment limit',
   DAILY_LIMIT_EXCEEDED: "That would take you past today's sending limit",
   VELOCITY_EXCEEDED: 'You are sending too quickly - wait a moment',
+  REJECTED_IN_REVIEW: 'A reviewer declined to release this payment',
   ACCOUNT_NOT_FOUND: 'That account no longer exists',
   NOT_FOUND: 'Not found',
 };
@@ -43,6 +45,10 @@ export function activityLine(
   switch (entry.type) {
     case 'payment.initiated':
       return `${from} started paying ${to} ${amount}`;
+    case 'payment.held':
+      return `${from} → ${to} ${amount} held for review`;
+    case 'payment.approved':
+      return `${from} → ${to} ${amount} released by a reviewer`;
     case 'payment.completed':
       return `${from} paid ${to} ${amount}`;
     case 'payment.failed':
@@ -55,3 +61,13 @@ export function activityLine(
       return `${entry.type} ${amount}`;
   }
 }
+
+/** Why the risk screen stopped a payment, for a person reading the queue. */
+const HOLD_REASON_LABEL: Record<string, string> = {
+  LARGE_AMOUNT: 'Large amount',
+  NEW_PAYEE_LARGE: 'First payment to this payee',
+  RAPID_FIRE: 'Several payments in quick succession',
+};
+
+export const holdReason = (code: string): string =>
+  HOLD_REASON_LABEL[code] ?? code.replace(/_/g, ' ').toLowerCase();
