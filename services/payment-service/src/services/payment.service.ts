@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { pool } from '../db/pool';
 import { withTransaction } from '../db/transaction';
+import { checkLimits } from '../domain/limits';
 import {
   canRefund,
   deriveIdempotencyKey,
@@ -81,7 +82,28 @@ export async function initiatePayment(
       if (!sender || !receiver) throw notFound('ACCOUNT_NOT_FOUND');
       if (!clearing) throw new HttpError(500, 'CLEARING_ACCOUNT_MISSING');
 
-      const authorise = moveFunds(sender, clearing, amountCents);
+      // Spending controls, checked with the sender's row already locked.
+      //
+      // That ordering is the whole guarantee. Concurrent payments from one
+      // account queue on that lock, so each one reads a spend total that
+      // already includes every payment committed before it - twenty
+      // simultaneous requests against a daily cap let exactly the right
+      // number through instead of all of them slipping past a stale read.
+      const limits = await accounts.findLimits(client, sender.id);
+      if (!limits) throw notFound('ACCOUNT_NOT_FOUND');
+      const spend = await accounts.spendSoFar(
+        client,
+        sender.id,
+        config.controls.velocityWindowSeconds,
+      );
+      const decision = checkLimits(amountCents, limits, spend);
+
+      // A limit breach is a decline, not an error: recorded as a FAILED
+      // payment the same way insufficient funds is, so it shows up in history
+      // with a reason rather than vanishing into a 4xx.
+      const authorise = decision.allowed
+        ? moveFunds(sender, clearing, amountCents)
+        : ({ ok: false, failureReason: decision.breach } as const);
 
       // Balances, the payment row, the ledger entries and the outbox event all
       // commit together - or none of them do.
