@@ -1,0 +1,50 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 900px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.tile {
+  display: block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  text-decoration: none;
+  color: inherit;
+}
+a.tile:hover { border-color: var(--accent); }
+.tile.good { border-left-color: var(--good); }
+.tile.warn { border-left-color: var(--warn); }
+.tile.bad  { border-left-color: var(--bad); }
+
+.tile .k {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tile .v { font-size: 1.2rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile.good .v { color: var(--good); }
+.tile.bad .v { color: var(--bad); }
+.tile .d { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+/* The architecture, stated once rather than assumed. */
+.pipeline-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.pipeline-map .node {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 11px;
+  background: var(--surface-2);
+}
+.pipeline-map .node.write { border-color: var(--accent); color: var(--accent); }
+.pipeline-map .node.read { border-color: var(--good); color: var(--good); }
+.pipeline-map .arrow { color: var(--muted); }
