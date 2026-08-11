@@ -60,6 +60,72 @@ export interface ProjectedPayment {
   updatedAt: string;
 }
 
+/** One row of the trial balance: an account's debit and credit columns. */
+export interface TrialBalanceRow {
+  accountId: string;
+  accountName: string;
+  isSystem: boolean;
+  debitsCents: number;
+  creditsCents: number;
+  /** Credits minus debits - what the journal says this account holds. */
+  ledgerBalanceCents: number;
+  /** What the accounts table claims. The two must agree. */
+  cachedBalanceCents: number;
+  matches: boolean;
+}
+
+export interface TrialBalance {
+  rows: TrialBalanceRow[];
+  totalDebitsCents: number;
+  totalCreditsCents: number;
+  differenceCents: number;
+  balanced: boolean;
+  systemTotalCents: number;
+  zeroSum: boolean;
+  mismatchedAccounts: number;
+}
+
+export interface JournalLine {
+  accountId: string;
+  accountName: string;
+  direction: 'DEBIT' | 'CREDIT';
+  amountCents: number;
+}
+
+/** A journal entry as a unit: one debit, one credit, and what they were for. */
+export interface JournalEntry {
+  entryGroup: string;
+  paymentId: string | null;
+  leg: Leg;
+  createdAt: string;
+  amountCents: number;
+  lines: JournalLine[];
+  balanced: boolean;
+}
+
+export interface StatementLine {
+  entryGroup: string;
+  paymentId: string | null;
+  leg: Leg;
+  direction: 'DEBIT' | 'CREDIT';
+  amountCents: number;
+  createdAt: string;
+  counterpartyName: string | null;
+  /** Signed effect on this account: credits add, debits subtract. */
+  changeCents: number;
+  runningCents: number;
+}
+
+export interface AccountStatement {
+  accountId: string;
+  accountName: string;
+  cachedBalanceCents: number;
+  matches: boolean;
+  openingCents: number;
+  closingCents: number;
+  lines: StatementLine[];
+}
+
 export interface Counters {
   sentCents: number;
   receivedCents: number;
