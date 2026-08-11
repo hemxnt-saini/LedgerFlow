@@ -62,6 +62,18 @@ export const config = {
     intervalMs: num(process.env.RECONCILE_INTERVAL_MS, 15_000),
   },
 
+  /**
+   * Endpoints that exist to break things on purpose, so the controls can be
+   * seen working rather than taken on trust.
+   *
+   * On by default because this project is a demonstration, and behind a switch
+   * because an endpoint that corrupts a balance has no business being reachable
+   * anywhere else. Same reasoning as `simulate_mode` on a payment.
+   */
+  demo: {
+    enabled: (process.env.DEMO_ENDPOINTS ?? 'true') !== 'false',
+  },
+
   /** Input caps at the trust boundary. */
   limits: {
     nameLength: 200,
