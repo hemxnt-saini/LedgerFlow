@@ -24,6 +24,8 @@ const BASE_STEPS: [string, string][] = [
 
 const MARKS: Record<PaymentStatus, Mark[]> = {
   PROCESSING: ['done', 'active', 'todo'],
+  // The money is safely held; nothing is wrong, it is simply paused.
+  HELD_FOR_REVIEW: ['done', 'warn', 'todo'],
   COMPLETED: ['done', 'done', 'done'],
   FAILED: ['error', 'todo', 'todo'],
   AWAITING_REFUND: ['done', 'error', 'warn'],
@@ -57,6 +59,13 @@ function labelsFor(payment: Payment, nameOf: (id: string) => string): [string, s
       labels[1] = ['Settlement failed', reason];
       labels[2] = ['Refunded', 'Every cent is back in your balance.'];
       break;
+    case 'HELD_FOR_REVIEW':
+      labels[1] = [
+        'Held for review',
+        'Your money is secured in the clearing account while this is checked.',
+      ];
+      labels[2] = ['Awaiting a decision', ''];
+      break;
     case 'COMPLETED':
       labels[2] = ['Delivered', `${nameOf(payment.toAccountId)} has the money.`];
       break;
@@ -78,7 +87,8 @@ export function SagaProgressModal({ payment, nameOf, onClose }: Props) {
 
   const marks = MARKS[payment.status];
   const labels = labelsFor(payment, nameOf);
-  const settled = payment.status !== 'PROCESSING';
+  const settled =
+    payment.status !== 'PROCESSING' && payment.status !== 'HELD_FOR_REVIEW';
 
   const tone =
     payment.status === 'COMPLETED'
@@ -122,7 +132,11 @@ export function SagaProgressModal({ payment, nameOf, onClose }: Props) {
 
       <div id="saga-footer">
         {!settled ? (
-          <div className="tiny muted">Watching the event stream…</div>
+          <div className="tiny muted">
+            {payment.status === 'HELD_FOR_REVIEW'
+              ? 'A reviewer has to release this before it can settle.'
+              : 'Watching the event stream…'}
+          </div>
         ) : (
           <>
             <div className={`result-icon ${tone}`}>{resultGlyph}</div>

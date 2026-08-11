@@ -63,6 +63,10 @@ export function WalletPage() {
             `Payment to ${other} declined: ${humanise(event.failureReason)}`,
             'bad',
           );
+        } else if (event.type === 'payment.held' && outgoing) {
+          alert(`${amount} to ${other} is held for review`, 'warn');
+        } else if (event.type === 'payment.approved' && outgoing) {
+          alert(`${amount} to ${other} was released by a reviewer`, 'good');
         } else if (event.type === 'payment.stuck' && outgoing) {
           alert(`${amount} to ${other} is stuck - a refund is on its way`, 'warn');
         } else if (event.type === 'payment.refunded' && outgoing) {
@@ -154,6 +158,9 @@ export function WalletPage() {
           <div className="row">
             <Link className="small muted" to="/ledger">
               Ledger →
+            </Link>
+            <Link className="small muted" to="/ops">
+              Reviews →
             </Link>
             <Link className="small muted" to="/controls">
               Controls →

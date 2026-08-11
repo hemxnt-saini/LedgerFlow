@@ -4,6 +4,7 @@ import { Toasts } from './components/Toasts';
 import { ControlsPage } from './features/controls/ControlsPage';
 import { KafkaPage } from './features/kafka/KafkaPage';
 import { LedgerPage } from './features/ledger/LedgerPage';
+import { OpsPage } from './features/ops/OpsPage';
 import { PipelinePage } from './features/pipeline/PipelinePage';
 import { WalletPage } from './features/wallet/WalletPage';
 
@@ -11,6 +12,7 @@ const TITLES: Record<string, string> = {
   '/': 'Wallet',
   '/ledger': 'Ledger',
   '/controls': 'Controls',
+  '/ops': 'Review queue',
   '/pipeline': 'Event monitor',
   '/kafka': 'Kafka control room',
 };
@@ -32,6 +34,7 @@ export function App() {
         <Route path="/" element={<WalletPage />} />
         <Route path="/ledger" element={<LedgerPage />} />
         <Route path="/controls" element={<ControlsPage />} />
+        <Route path="/ops" element={<OpsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/kafka" element={<KafkaPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
