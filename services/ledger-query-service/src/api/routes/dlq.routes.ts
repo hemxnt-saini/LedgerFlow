@@ -14,6 +14,18 @@ import { clampLimit } from '../validation';
 export function createDlqRoutes(dlq: DeadLetterQueue): Router {
   const router = Router();
 
+  /**
+   * Publish a message the consumer cannot parse, so it can be watched being
+   * parked rather than dropped. 404s unless demo endpoints are enabled.
+   */
+  router.post(
+    '/dlq/demo/poison',
+    asyncRoute(async (_req, res) => {
+      if (!config.demo.enabled) return res.status(404).json({ error: 'NOT_FOUND' });
+      res.json(await dlq.poison());
+    }),
+  );
+
   router.get(
     '/dlq',
     asyncRoute(async (req, res) => {

@@ -45,6 +45,15 @@ export const config = {
 
   /** Proxies and browsers drop an idle SSE stream without a heartbeat. */
   streamKeepAliveMs: 20_000,
+  /**
+   * Endpoints that break things on purpose, so the failure handling can be
+   * seen working rather than taken on trust. Same reasoning as the payment
+   * service's: on by default because this is a demonstration, behind a switch
+   * because deliberately corrupting a topic belongs nowhere else.
+   */
+  demo: {
+    enabled: (process.env.DEMO_ENDPOINTS ?? 'true') !== 'false',
+  },
 } as const;
 
 export type Config = typeof config;

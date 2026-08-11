@@ -159,6 +159,22 @@ export function createDeadLetterQueue(kafka: Kafka, redis: Redis, mainTopic: str
       return replayed;
     },
 
+    /**
+     * Demo only: writes something the consumer cannot possibly handle.
+     *
+     * Parking a poison message was the one failure in this system with no way
+     * to trigger it from the app - it needed a shell and a console producer.
+     * The bytes are deliberately not JSON, which is the simplest thing that
+     * reaches the UNPARSEABLE path without inventing a fake event.
+     */
+    async poison(): Promise<{ topic: string; payload: string }> {
+      const payload = `not json - parked on purpose at ${new Date().toISOString()}`;
+      const sender = await getProducer();
+      await sender.send({ topic: mainTopic, messages: [{ value: payload }] });
+      log.warn('DEMO: produced a poison message', { topic: mainTopic });
+      return { topic: mainTopic, payload };
+    },
+
     async discard(dlqId: string): Promise<boolean> {
       const raw = await redis.lrange(DLQ_KEY, 0, MAX_DLQ_ENTRIES - 1);
       const found = raw.find((item) => JSON.parse(item).dlqId === dlqId);
