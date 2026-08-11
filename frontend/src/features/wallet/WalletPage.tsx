@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { getPayment } from '../../api/payments';
-import { LiveDot } from '../../components/LiveDot';
+import { PageShell } from '../../components/PageShell';
 import { useEventStream } from '../../hooks/useEventStream';
 import { useRelativeTimeTick } from '../../hooks/useRelativeTimeTick';
 import { useToasts } from '../../hooks/useToasts';
 import { humanise } from '../../lib/labels';
 import { fmt } from '../../lib/money';
 import type { Payment, StreamEvent } from '../../types/api';
+import { ArchitectureCard } from '../overview/ArchitectureCard';
+import { SystemPanel } from '../overview/SystemPanel';
+import { useSystemStatus } from '../overview/useSystemStatus';
 import { ActivityFeed } from './ActivityFeed';
 import { BalanceCard } from './BalanceCard';
 import { FriendsList } from './FriendsList';
@@ -96,6 +98,8 @@ export function WalletPage() {
   const { connected } = useEventStream({ onEvent: handleEvent });
 
   const signedIn = Boolean(me);
+  // Polled only while signed out, where it is the landing page's content.
+  const system = useSystemStatus(!signedIn);
   const friends = useMemo(
     () => wallet.accounts.filter((account) => account.id !== meId),
     [wallet.accounts, meId],
@@ -134,57 +138,45 @@ export function WalletPage() {
   // signed in looks like being logged out.
   if (!wallet.ready) return null;
 
+  // Signed out, the landing has to say what this is. A bare "who are you?"
+  // reads as a toy; the system panel above the picker reads as a platform.
+  if (!signedIn) {
+    return (
+      <PageShell logo="W" title="LedgerFlow" subtitle="event-driven payments">
+        <SystemPanel status={system} />
+        <LoginScreen
+          hidden={false}
+          accounts={wallet.accounts}
+          onSignIn={wallet.signIn}
+          onAccountCreated={wallet.reloadAccounts}
+        />
+        <ArchitectureCard />
+      </PageShell>
+    );
+  }
+
   return (
     <>
-      <LoginScreen
-        hidden={signedIn}
-        accounts={wallet.accounts}
-        onSignIn={wallet.signIn}
-        onAccountCreated={wallet.reloadAccounts}
-      />
-
-      <div id="app" className={signedIn ? undefined : 'hidden'}>
-        <header className="topbar">
-          <div className="brand">
-            <div className="logo">W</div>
-            <div>
-              <h1>Wallet</h1>
-              <div className="tiny muted">
-                <LiveDot connected={connected} />
-              </div>
-            </div>
-          </div>
-
-          <div className="row">
-            <Link className="small muted" to="/ledger">
-              Ledger →
-            </Link>
-            <Link className="small muted" to="/ops">
-              Reviews →
-            </Link>
-            <Link className="small muted" to="/controls">
-              Controls →
-            </Link>
-            <Link className="small muted" to="/kafka">
-              Kafka →
-            </Link>
-            <Link className="small muted" to="/pipeline">
-              Pipeline →
-            </Link>
-            <NotificationBell
-              items={notifications.items}
-              unread={notifications.unread}
-              onOpen={notifications.markRead}
-              onClear={notifications.clear}
-            />
-            <button id="switch-user" className="ghost small" onClick={wallet.signOut}>
-              <span id="me-name">{me?.name ?? '…'}</span> ⌄
-            </button>
-          </div>
-        </header>
-
-        {signedIn && meId && (
-          <main>
+      <div id="app">
+        <PageShell
+          logo="W"
+          title="Wallet"
+          connected={connected}
+          actions={
+            <>
+              <NotificationBell
+                items={notifications.items}
+                unread={notifications.unread}
+                onOpen={notifications.markRead}
+                onClear={notifications.clear}
+              />
+              <button id="switch-user" className="ghost small" onClick={wallet.signOut}>
+                <span id="me-name">{me?.name ?? '…'}</span> ⌄
+              </button>
+            </>
+          }
+        >
+          {meId && (
             <div className="grid">
               <div>
                 <BalanceCard
@@ -212,8 +204,8 @@ export function WalletPage() {
                 <ActivityFeed activity={wallet.activity} nameOf={nameOf} />
               </div>
             </div>
-          </main>
-        )}
+          )}
+        </PageShell>
       </div>
 
       {sendOpen && meId && me && (
