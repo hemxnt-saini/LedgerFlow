@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { withTransaction } from '../db/transaction';
 import { reconcile, type ReconciliationReport } from '../domain/reconciliation';
+import { HttpError } from '../lib/http-error';
 import { log } from '../lib/logger';
 import { redis } from '../lib/redis';
 import {
@@ -96,6 +97,75 @@ export async function runReconciliation(): Promise<ReconciliationResult> {
   }
 
   return { ...report, id: runId, durationMs };
+}
+
+export interface RepairResult {
+  repaired: { accountId: string; accountName: string; fromCents: number; toCents: number }[];
+  /** Total absolute correction applied, in cents. */
+  correctedCents: number;
+}
+
+/**
+ * Remediation: recompute every cached balance from the journal.
+ *
+ * Detecting drift and fixing it are separate jobs, and this is the fix. It is
+ * safe precisely because the journal is append-only - the ledger is never the
+ * thing that needs repairing, only the balance cached alongside it, so the
+ * correct value is always recoverable by adding the lines back up.
+ *
+ * Nothing is posted to the ledger here. Writing a correcting journal entry
+ * would be wrong: no money moved, a number was simply stale.
+ */
+export async function repairBalances(): Promise<RepairResult> {
+  return withTransaction(async (client) => {
+    const drifted = await runs.findDrifted(client);
+    for (const account of drifted) {
+      await runs.setBalance(client, account.id, account.ledgerCents);
+    }
+
+    const result: RepairResult = {
+      repaired: drifted.map((account) => ({
+        accountId: account.id,
+        accountName: account.name,
+        fromCents: account.cachedCents,
+        toCents: account.ledgerCents,
+      })),
+      correctedCents: drifted.reduce(
+        (sum, account) => sum + Math.abs(account.cachedCents - account.ledgerCents),
+        0,
+      ),
+    };
+
+    if (drifted.length > 0) {
+      log.warn('repaired cached balances from the journal', {
+        accounts: drifted.length,
+        correctedCents: result.correctedCents,
+      });
+    }
+    return result;
+  });
+}
+
+/**
+ * Breaks the books on purpose, so the control can be watched catching it.
+ *
+ * Deliberately changes a balance without a journal entry, which is the one
+ * thing the whole double-entry design is meant to make impossible through the
+ * API. Reachable only when demo endpoints are enabled.
+ */
+export async function injectDrift(driftCents: number): Promise<{
+  accountId: string;
+  accountName: string;
+  driftCents: number;
+}> {
+  const account = await withTransaction((client) => runs.injectDrift(client, driftCents));
+  if (!account) throw new HttpError(409, 'NO_ACCOUNTS_TO_DRIFT');
+
+  log.warn('DEMO: injected balance drift', {
+    accountId: account.id,
+    driftCents,
+  });
+  return { accountId: account.id, accountName: account.name, driftCents };
 }
 
 /** The latest verdict plus recent history, so drift has a first sighting. */
