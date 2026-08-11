@@ -25,7 +25,7 @@ echo "Creating wallets:"
 create "Alice"  100000   # $1,000.00
 create "Bob"     50000   # $500.00
 create "Carol"     500   # $5.00  - handy for the insufficient-funds case
-create "Dev"     25000   # $250.00
+create "Sam"     25000   # $250.00
 create "Priya"   75000   # $750.00
 
 echo
