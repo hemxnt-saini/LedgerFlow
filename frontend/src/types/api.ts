@@ -60,6 +60,58 @@ export interface ProjectedPayment {
   updatedAt: string;
 }
 
+export type Severity = 'OK' | 'WARN' | 'DRIFT';
+
+export type FindingCode =
+  | 'BALANCE_DRIFT'
+  | 'SYSTEM_NOT_ZERO_SUM'
+  | 'CLEARING_MISMATCH'
+  | 'UNBALANCED_JOURNAL'
+  | 'READ_MODEL_DRIFT'
+  | 'READ_MODEL_LAG';
+
+export interface Finding {
+  code: FindingCode;
+  severity: Severity;
+  detail: string;
+  accountId?: string;
+  accountName?: string;
+  expectedCents?: number;
+  actualCents?: number;
+  driftCents?: number;
+}
+
+export interface ReconciliationRun {
+  id: number;
+  startedAt: string;
+  finishedAt: string | null;
+  status: Severity;
+  checkedAccounts: number;
+  driftCents: number;
+  findings: Finding[];
+  durationMs: number | null;
+}
+
+/** What POST /reconciliation/run returns: the report plus how it was recorded. */
+export interface ReconciliationResult {
+  id: number;
+  status: Severity;
+  findings: Finding[];
+  checkedAccounts: number;
+  driftCents: number;
+  durationMs: number;
+}
+
+export interface RepairResult {
+  repaired: {
+    accountId: string;
+    accountName: string;
+    fromCents: number;
+    toCents: number;
+  }[];
+  correctedCents: number;
+}
+
 /** One row of the trial balance: an account's debit and credit columns. */
 export interface TrialBalanceRow {
   accountId: string;
