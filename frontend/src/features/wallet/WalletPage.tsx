@@ -154,6 +154,9 @@ export function WalletPage() {
             <Link className="small muted" to="/ledger">
               Ledger →
             </Link>
+            <Link className="small muted" to="/controls">
+              Controls →
+            </Link>
             <Link className="small muted" to="/kafka">
               Kafka →
             </Link>

@@ -80,11 +80,15 @@ a { color: var(--accent); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* The nav grew past what a phone width holds on one line. Wrapping keeps
+     every destination reachable instead of pushing the page sideways. */
+  flex-wrap: wrap;
   gap: 12px;
   padding: 12px 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
+.topbar .row { flex-wrap: wrap; justify-content: flex-end; }
 
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand .logo {

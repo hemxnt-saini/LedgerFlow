@@ -57,7 +57,7 @@ export function LedgerPage() {
             <h1>Ledger</h1>
             <div className="tiny muted">
               <LiveDot connected={connected} /> · <Link to="/">wallet</Link> ·{' '}
-              <Link to="/kafka">Kafka control room</Link>
+              <Link to="/controls">controls</Link> · <Link to="/kafka">Kafka control room</Link>
             </div>
           </div>
         </div>
