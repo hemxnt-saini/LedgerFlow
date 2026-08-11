@@ -363,3 +363,17 @@ label.field > span { display: block; font-size: 0.78rem; color: var(--muted); ma
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* ---------- limit meter ---------- */
+
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.meter-fill { height: 100%; transition: width 0.4s ease; }
+.meter-fill.good { background: var(--good); }
+.meter-fill.warn { background: var(--warn); }
+.meter-fill.bad  { background: var(--bad); }
