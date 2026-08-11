@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { listAccounts } from '../../api/accounts';
 import { listDeadLetters, replayDeadLetter } from '../../api/dlq';
 import { getOverview, pauseConsumer, rebuildReadModel, resumeConsumer } from '../../api/kafka';
 import { sendPayment } from '../../api/payments';
+import { PageShell } from '../../components/PageShell';
 import { Card, CardHead } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
-import { LiveDot } from '../../components/LiveDot';
 import { useEventStream } from '../../hooks/useEventStream';
 import { useInterval } from '../../hooks/useInterval';
 import { useToasts } from '../../hooks/useToasts';
@@ -150,28 +149,17 @@ export function KafkaPage() {
 
   return (
     <div className="page-kafka">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo">≡</div>
-          <div>
-            <h1>Kafka control room</h1>
-            <div className="tiny muted">
-              <LiveDot connected={connected && !apiDown} /> · <Link to="/">wallet</Link> ·{' '}
-              <Link to="/pipeline">pipeline latency</Link>
-            </div>
-          </div>
-        </div>
-        <div className="row">
-          <span
+      <PageShell
+        logo="≡"
+        title="Kafka control room"
+        connected={connected && !apiDown}
+        actions={<span
             id="paused-pill"
             className={`badge AWAITING_REFUND${paused ? '' : ' hidden'}`}
           >
             CONSUMER PAUSED
-          </span>
-        </div>
-      </header>
-
-      <main>
+          </span>}
+      >
         <div id="paused-banner" className={`banner${paused ? '' : ' hidden'}`}>
           The consumer is paused. Keep sending payments in the wallet - the write side
           carries on, the log keeps growing, and lag builds up below. Nothing is lost;
@@ -384,7 +372,7 @@ export function KafkaPage() {
             </Card>
           </div>
         </div>
-      </main>
+      </PageShell>
     </div>
   );
 }

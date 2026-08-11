@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { listAccounts } from '../../api/accounts';
 import { ApiError } from '../../api/client';
 import { approvePayment, listReviews, rejectPayment } from '../../api/payments';
+import { PageShell } from '../../components/PageShell';
 import { Card, CardHead } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
-import { LiveDot } from '../../components/LiveDot';
 import { Skeleton } from '../../components/Skeleton';
 import { useEventStream } from '../../hooks/useEventStream';
 import { useToasts } from '../../hooks/useToasts';
@@ -76,23 +75,14 @@ export function OpsPage() {
 
   return (
     <div className="page-ops">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo">⚑</div>
-          <div>
-            <h1>Review queue</h1>
-            <div className="tiny muted">
-              <LiveDot connected={connected} /> · <Link to="/">wallet</Link> ·{' '}
-              <Link to="/ledger">ledger</Link> · <Link to="/controls">controls</Link>
-            </div>
-          </div>
-        </div>
-        <button className="ghost small" id="ops-refresh" onClick={() => void load()}>
-          Refresh
-        </button>
-      </header>
-
-      <main>
+      <PageShell
+        logo="⚑"
+        title="Review queue"
+        connected={connected}
+        actions={<button className="ghost small" id="ops-refresh" onClick={() => void load()}>
+            Refresh
+          </button>}
+      >
         <Card>
           <CardHead title="Waiting on a decision" aside={`${held.length} payment(s)`} />
           <div className="stats">
@@ -181,7 +171,7 @@ export function OpsPage() {
             back and the original entry stays in the journal.
           </p>
         </Card>
-      </main>
+      </PageShell>
     </div>
   );
 }

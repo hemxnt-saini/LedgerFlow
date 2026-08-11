@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { getJournal, getStatement, getTrialBalance } from '../../api/ledger';
+import { PageShell } from '../../components/PageShell';
 import { Card } from '../../components/Card';
-import { LiveDot } from '../../components/LiveDot';
 import { Skeleton } from '../../components/Skeleton';
 import { useEventStream } from '../../hooks/useEventStream';
 import type { AccountStatement, JournalEntry, TrialBalance } from '../../types/api';
@@ -50,23 +49,18 @@ export function LedgerPage() {
 
   return (
     <div className="page-ledger">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo">⚖</div>
-          <div>
-            <h1>Ledger</h1>
-            <div className="tiny muted">
-              <LiveDot connected={connected} /> · <Link to="/">wallet</Link> ·{' '}
-              <Link to="/controls">controls</Link> · <Link to="/kafka">Kafka control room</Link>
-            </div>
-          </div>
-        </div>
-        <button className="ghost small" id="ledger-refresh" onClick={() => void load(selectedId)}>
-          Refresh
-        </button>
-      </header>
-
-      <main>
+      <PageShell
+        logo="⚖"
+        title="Ledger"
+        connected={connected}
+        actions={<button
+            className="ghost small"
+            id="ledger-refresh"
+            onClick={() => void load(selectedId)}
+          >
+            Refresh
+          </button>}
+      >
         {failed ? (
           <Card>
             <div className="empty">
@@ -92,7 +86,7 @@ export function LedgerPage() {
             )}
           </>
         )}
-      </main>
+      </PageShell>
     </div>
   );
 }

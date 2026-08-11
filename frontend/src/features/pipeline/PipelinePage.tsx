@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { listAccounts } from '../../api/accounts';
 import { getPipelineTraces } from '../../api/read-model';
+import { PageShell } from '../../components/PageShell';
 import { Card, CardHead } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
-import { LiveDot } from '../../components/LiveDot';
 import { useEventStream } from '../../hooks/useEventStream';
 import { CLEARING_ACCOUNT_ID } from '../../lib/config';
 import { fmt, median, ms } from '../../lib/money';
@@ -74,31 +73,22 @@ export function PipelinePage() {
 
   return (
     <div className="page-pipeline">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo">▤</div>
-          <div>
-            <h1>Event monitor</h1>
-            <div className="tiny muted">
-              <LiveDot connected={connected} /> · <Link to="/">wallet</Link> ·{' '}
-              <Link to="/kafka">Kafka control room</Link>
-            </div>
-          </div>
-        </div>
-        <button
-          id="clear"
-          className="ghost small"
-          onClick={() => {
-            setTraces([]);
-            setEvents(new Map());
-            setSelected(null);
-          }}
-        >
-          Clear
-        </button>
-      </header>
-
-      <main>
+      <PageShell
+        logo="▤"
+        title="Event monitor"
+        connected={connected}
+        actions={<button
+            id="clear"
+            className="ghost small"
+            onClick={() => {
+              setTraces([]);
+              setEvents(new Map());
+              setSelected(null);
+            }}
+          >
+            Clear
+          </button>}
+      >
         <Card>
           <CardHead title="What you are looking at" />
           <p className="small muted" style={{ marginTop: -4 }}>
@@ -251,7 +241,7 @@ export function PipelinePage() {
             </Card>
           </div>
         </div>
-      </main>
+      </PageShell>
     </div>
   );
 }

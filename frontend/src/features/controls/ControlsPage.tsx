@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   getReconciliation,
   injectDrift,
   repairBalances,
   runReconciliation,
 } from '../../api/reconciliation';
+import { PageShell } from '../../components/PageShell';
 import { Card, CardHead } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
@@ -136,23 +136,18 @@ export function ControlsPage() {
 
   return (
     <div className="page-controls">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo">◎</div>
-          <div>
-            <h1>Controls</h1>
-            <div className="tiny muted">
-              <Link to="/">wallet</Link> · <Link to="/ledger">ledger</Link> ·{' '}
-              <Link to="/kafka">Kafka control room</Link>
-            </div>
-          </div>
-        </div>
-        <button className="ghost small" id="run-control" disabled={busy !== null} onClick={runNow}>
-          {busy === 'run' ? 'Running…' : 'Run control now'}
-        </button>
-      </header>
-
-      <main>
+      <PageShell
+        logo="◎"
+        title="Controls"
+        actions={<button
+            className="ghost small"
+            id="run-control"
+            disabled={busy !== null}
+            onClick={runNow}
+          >
+            {busy === 'run' ? 'Running…' : 'Run control now'}
+          </button>}
+      >
         {!loaded ? (
           <Card>
             <Skeleton />
@@ -288,7 +283,7 @@ export function ControlsPage() {
             </div>
           </>
         )}
-      </main>
+      </PageShell>
     </div>
   );
 }
