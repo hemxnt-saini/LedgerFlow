@@ -1,0 +1,123 @@
+.page-ledger table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.page-ledger th,
+.page-ledger td {
+  text-align: left;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.page-ledger th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.page-ledger td.num,
+.page-ledger th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.page-ledger tbody tr.selectable { cursor: pointer; }
+.page-ledger tbody tr.selectable:hover { background: var(--surface-2); }
+.page-ledger tbody tr.on { background: var(--accent-soft); }
+.page-ledger tfoot td {
+  font-weight: 680;
+  border-top: 2px solid var(--text);
+  border-bottom: none;
+  font-variant-numeric: tabular-nums;
+}
+.page-ledger .scroll { max-height: 440px; overflow: auto; }
+/* Wide numeric tables scroll inside their card rather than the page. */
+.page-ledger .scroll table { min-width: 560px; }
+
+/* The verdict. A trial balance has exactly one job, so say the answer loudly. */
+.page-ledger .verdict {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.page-ledger .verdict.ok { border-color: var(--good); background: var(--good-soft); }
+.page-ledger .verdict.bad { border-color: var(--bad); background: var(--bad-soft); }
+.page-ledger .verdict .mark { font-size: 1.6rem; line-height: 1; }
+.page-ledger .verdict.ok .mark { color: var(--good); }
+.page-ledger .verdict.bad .mark { color: var(--bad); }
+.page-ledger .verdict .headline { font-weight: 660; font-size: 0.98rem; }
+
+/* Debits on the left, credits on the right, the way a ledger is written. */
+.page-ledger .columns {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+@media (max-width: 620px) {
+  .page-ledger .columns { grid-template-columns: 1fr; }
+  .page-ledger .columns .equals { display: none; }
+}
+.page-ledger .column {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+.page-ledger .column .k {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.page-ledger .column .v { font-size: 1.4rem; font-weight: 660; font-variant-numeric: tabular-nums; }
+.page-ledger .equals { font-size: 1.3rem; color: var(--muted); font-weight: 600; }
+
+.page-ledger .journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.page-ledger .entry {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.page-ledger .entry.broken { border-color: var(--bad); }
+.page-ledger .entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+.page-ledger .entry-lines { display: grid; gap: 3px; }
+.page-ledger .line {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 10px;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.page-ledger .line .dir { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; padding-top: 2px; }
+.page-ledger .line .dir.DEBIT { color: var(--bad); }
+.page-ledger .line .dir.CREDIT { color: var(--good); }
+
+.page-ledger .leg {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.page-ledger .leg.FUNDING { color: #8b7bd8; border-color: #8b7bd8; }
+.page-ledger .leg.AUTHORISE { color: #6c8dff; border-color: #6c8dff; }
+.page-ledger .leg.SETTLE { color: #46c58d; border-color: #46c58d; }
+.page-ledger .leg.COMPENSATE { color: #e0a338; border-color: #e0a338; }
