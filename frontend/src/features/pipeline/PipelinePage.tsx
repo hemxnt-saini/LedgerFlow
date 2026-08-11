@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listAccounts } from '../../api/accounts';
 import { getPipelineTraces } from '../../api/read-model';
 import { PageShell } from '../../components/PageShell';
 import { Card, CardHead } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
 import { useEventStream } from '../../hooks/useEventStream';
 import { CLEARING_ACCOUNT_ID } from '../../lib/config';
-import { fmt, median, ms } from '../../lib/money';
+import { fmt, median, ms, percentile } from '../../lib/money';
 import type { ActivityEntry, PipelineTrace, StreamEvent } from '../../types/api';
 import './pipeline.css';
 
@@ -65,12 +64,6 @@ export function PipelinePage() {
   });
 
   const sample = traces.slice(0, SAMPLE);
-  const typeCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const trace of traces) counts.set(trace.type, (counts.get(trace.type) ?? 0) + 1);
-    return [...counts].sort((a, b) => b[1] - a[1]);
-  }, [traces]);
-
   return (
     <div className="page-pipeline">
       <PageShell
@@ -205,19 +198,35 @@ export function PipelinePage() {
             </Card>
 
             <Card>
-              <CardHead title="Event types seen" />
-              <div id="types" className="list">
-                {typeCounts.length === 0 ? (
-                  <EmptyState>None yet.</EmptyState>
-                ) : (
-                  typeCounts.map(([type, count]) => (
-                    <div className="item flat" key={type}>
-                      <div className="grow mono small">{type}</div>
-                      <div className="amount">{count}</div>
+              <CardHead title="End to end" aside={`last ${sample.length}`} />
+              <div className="stats">
+                {(
+                  [
+                    ['p50', 50],
+                    ['p95', 95],
+                    ['p99', 99],
+                    ['max', 100],
+                  ] as const
+                ).map(([label, p]) => {
+                  const value = percentile(
+                    sample.map((trace) => trace.stages.totalMs),
+                    p,
+                  );
+                  return (
+                    <div className="stat" key={label}>
+                      <div className="k">{label}</div>
+                      <div className="v" id={`pct-${label}`}>
+                        {value === null ? '–' : ms(value)}
+                      </div>
                     </div>
-                  ))
-                )}
+                  );
+                })}
               </div>
+              <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+                A median hides the tail, and the tail is what a latency promise is
+                written against. p95 is the number that decides whether a system feels
+                fast; p50 only says the common case was fine.
+              </p>
             </Card>
 
             <Card>

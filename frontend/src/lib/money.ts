@@ -18,8 +18,26 @@ export const initials = (name: string | undefined): string =>
 export const ms = (value: number): string => `${Math.round(value)}ms`;
 
 export function median(values: number[]): number | null {
+  return percentile(values, 50);
+}
+
+/**
+ * Nearest-rank percentile.
+ *
+ * A median alone hides the tail, and the tail is what a latency promise is
+ * actually written against - p95 is the number that decides whether a system
+ * feels fast, not p50.
+ */
+export function percentile(values: number[], p: number): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  if (p >= 100) return sorted[sorted.length - 1];
+  // Averaging the two middle samples keeps the median exact on even counts,
+  // which is what the stage figures showed before percentiles existed.
+  if (p === 50 && sorted.length % 2 === 0) {
+    const mid = sorted.length / 2;
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  const rank = Math.ceil((p / 100) * sorted.length);
+  return sorted[Math.min(Math.max(rank, 1) - 1, sorted.length - 1)];
 }
