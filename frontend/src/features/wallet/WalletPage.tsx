@@ -151,6 +151,9 @@ export function WalletPage() {
           </div>
 
           <div className="row">
+            <Link className="small muted" to="/ledger">
+              Ledger →
+            </Link>
             <Link className="small muted" to="/kafka">
               Kafka →
             </Link>
