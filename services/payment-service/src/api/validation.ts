@@ -1,4 +1,5 @@
 import { config } from '../config';
+import type { AccountLimits } from '../domain/limits';
 import { isValidAmount, type SimulateMode } from '../domain/payment';
 import { badRequest } from '../lib/http-error';
 
@@ -36,6 +37,30 @@ export function parseOpeningBalance(value: unknown): number {
     throw badRequest('INVALID_INITIAL_BALANCE');
   }
   return value as number;
+}
+
+/** A limit is a non-negative whole number of cents; zero means "blocked". */
+function parseCap(value: unknown, code: string, max: number): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) > max) {
+    throw badRequest(code);
+  }
+  return value as number;
+}
+
+export function parseLimits(body: Record<string, unknown>): AccountLimits {
+  return {
+    maxPaymentCents: parseCap(
+      body.maxPaymentCents,
+      'INVALID_MAX_PAYMENT',
+      config.limits.maxLimitCents,
+    ),
+    dailyLimitCents: parseCap(
+      body.dailyLimitCents,
+      'INVALID_DAILY_LIMIT',
+      config.limits.maxLimitCents,
+    ),
+    velocityMax: parseCap(body.velocityMax, 'INVALID_VELOCITY_MAX', 10_000),
+  };
 }
 
 export function parseNote(value: unknown): string | null {
