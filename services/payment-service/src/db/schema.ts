@@ -2,6 +2,7 @@ import { config } from '../config';
 import { pool } from './pool';
 
 const { clearingId, fundingId } = config.systemAccounts;
+const { controls } = config;
 
 // Idempotent DDL run on boot. A real deployment would use a migration tool;
 // for a single-developer project, CREATE TABLE IF NOT EXISTS is enough.
@@ -13,6 +14,12 @@ CREATE TABLE IF NOT EXISTS accounts (
   name          TEXT NOT NULL,
   balance_cents BIGINT NOT NULL,
   is_system     BOOLEAN NOT NULL DEFAULT false,
+  -- Spending controls, per account. Held here rather than in a side table
+  -- because there is exactly one set per account and the authorise
+  -- transaction already has this row locked when it needs them.
+  max_payment_cents BIGINT NOT NULL DEFAULT ${controls.maxPaymentCents} CHECK (max_payment_cents >= 0),
+  daily_limit_cents BIGINT NOT NULL DEFAULT ${controls.dailyLimitCents} CHECK (daily_limit_cents >= 0),
+  velocity_max      INT    NOT NULL DEFAULT ${controls.velocityMax}     CHECK (velocity_max >= 0),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -45,6 +52,11 @@ CREATE INDEX IF NOT EXISTS payments_pending_idx
   ON payments (status, next_attempt_at) WHERE status IN ('PROCESSING','AWAITING_REFUND');
 CREATE INDEX IF NOT EXISTS payments_from_idx ON payments (from_account_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS payments_to_idx   ON payments (to_account_id, created_at DESC);
+-- The limit check sums one sender's recent funds-taking payments on every
+-- authorise, so it gets an index shaped like that query.
+CREATE INDEX IF NOT EXISTS payments_spend_idx
+  ON payments (from_account_id, created_at DESC)
+  WHERE status IN ('PROCESSING','COMPLETED','AWAITING_REFUND');
 
 -- Append-only. Nothing in this service ever UPDATEs or DELETEs a ledger row.
 --
@@ -109,6 +121,9 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMPTZ NOT NU
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS simulate_mode TEXT NOT NULL DEFAULT 'NONE';
 ALTER TABLE payments DROP COLUMN IF EXISTS simulate_failure;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS correlation_id TEXT;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS max_payment_cents BIGINT NOT NULL DEFAULT ${controls.maxPaymentCents};
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS daily_limit_cents BIGINT NOT NULL DEFAULT ${controls.dailyLimitCents};
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS velocity_max      INT    NOT NULL DEFAULT ${controls.velocityMax};
 `;
 
 export async function initSchema(): Promise<void> {

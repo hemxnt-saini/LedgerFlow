@@ -63,6 +63,21 @@ export const config = {
   },
 
   /**
+   * Default spending controls applied to a new wallet.
+   *
+   * Deliberately small enough that the limits can be reached in a
+   * demonstration rather than only in theory. Per-account values live on the
+   * `accounts` row and can be changed through the API; these are what a new
+   * account starts with.
+   */
+  controls: {
+    maxPaymentCents: num(process.env.DEFAULT_MAX_PAYMENT_CENTS, 100_000), // $1,000
+    dailyLimitCents: num(process.env.DEFAULT_DAILY_LIMIT_CENTS, 250_000), // $2,500
+    velocityMax: num(process.env.DEFAULT_VELOCITY_MAX, 8),
+    velocityWindowSeconds: num(process.env.VELOCITY_WINDOW_SECONDS, 60),
+  },
+
+  /**
    * Endpoints that exist to break things on purpose, so the controls can be
    * seen working rather than taken on trust.
    *
@@ -81,6 +96,8 @@ export const config = {
     idempotencyKeyLength: 255,
     paymentsPageSize: 200,
     reconciliationPageSize: 100,
+    /** Ceiling on a configurable spending cap - $1,000,000. */
+    maxLimitCents: 100_000_000,
   },
 
   /**

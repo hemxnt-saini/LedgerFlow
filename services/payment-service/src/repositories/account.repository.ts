@@ -1,4 +1,5 @@
 import type { Queryable } from '../db/pool';
+import type { AccountLimits, SpendSoFar } from '../domain/limits';
 import type { Account } from '../domain/payment';
 import type { AccountRow } from '../models/account.model';
 
@@ -72,4 +73,73 @@ export async function updateBalance(
     id,
     balanceCents,
   ]);
+}
+
+export async function findLimits(
+  db: Queryable,
+  id: string,
+): Promise<AccountLimits | null> {
+  const { rows } = await db.query<{
+    max_payment_cents: number;
+    daily_limit_cents: number;
+    velocity_max: number;
+  }>(
+    'SELECT max_payment_cents, daily_limit_cents, velocity_max FROM accounts WHERE id = $1',
+    [id],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    maxPaymentCents: row.max_payment_cents,
+    dailyLimitCents: row.daily_limit_cents,
+    velocityMax: row.velocity_max,
+  };
+}
+
+export async function updateLimits(
+  db: Queryable,
+  id: string,
+  limits: AccountLimits,
+): Promise<AccountRow | null> {
+  const { rows } = await db.query<AccountRow>(
+    `UPDATE accounts
+        SET max_payment_cents = $2, daily_limit_cents = $3, velocity_max = $4
+      WHERE id = $1 AND NOT is_system
+      RETURNING ${COLUMNS}`,
+    [id, limits.maxPaymentCents, limits.dailyLimitCents, limits.velocityMax],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * What this account has already spent, for the limit check.
+ *
+ * Counts only payments that actually took funds. A declined payment moved
+ * nothing and must not consume an allowance, and a refunded one gave the money
+ * back. Velocity counts the same set rather than every attempt, so a run of
+ * insufficient-funds declines cannot rate-limit someone out of their own
+ * wallet.
+ *
+ * Must be called with the sender's row already locked. Under READ COMMITTED
+ * this sees everything committed before the statement began, and the row lock
+ * is what guarantees no concurrent payment from the same sender can commit
+ * between this read and ours.
+ */
+export async function spendSoFar(
+  db: Queryable,
+  accountId: string,
+  velocityWindowSeconds: number,
+): Promise<SpendSoFar> {
+  const { rows } = await db.query<{ today_cents: number; recent_count: number }>(
+    `SELECT
+       coalesce(sum(amount_cents)
+         FILTER (WHERE created_at >= date_trunc('day', now())), 0)::bigint AS today_cents,
+       count(*)
+         FILTER (WHERE created_at >= now() - make_interval(secs => $2))::int AS recent_count
+       FROM payments
+      WHERE from_account_id = $1
+        AND status IN ('PROCESSING','COMPLETED','AWAITING_REFUND')`,
+    [accountId, velocityWindowSeconds],
+  );
+  return { todayCents: rows[0].today_cents, recentCount: rows[0].recent_count };
 }
