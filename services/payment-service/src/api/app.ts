@@ -4,6 +4,7 @@ import { cors } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { requestContext } from './middleware/request-context';
 import { accountRoutes } from './routes/account.routes';
+import { ledgerRoutes } from './routes/ledger.routes';
 import { paymentRoutes } from './routes/payment.routes';
 import { reconciliationRoutes } from './routes/reconciliation.routes';
 
@@ -24,6 +25,7 @@ export function createApp(): Express {
   );
 
   app.use(accountRoutes);
+  app.use(ledgerRoutes);
   app.use(paymentRoutes);
   app.use(reconciliationRoutes);
 
