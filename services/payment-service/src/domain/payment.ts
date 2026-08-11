@@ -39,10 +39,14 @@ export type PaymentStatus =
 
 export type Direction = 'DEBIT' | 'CREDIT';
 
+import type { LimitBreach } from './limits';
+
 export type FailureReason =
   | 'INVALID_AMOUNT'
   | 'SAME_ACCOUNT'
-  | 'INSUFFICIENT_FUNDS';
+  | 'INSUFFICIENT_FUNDS'
+  /** A spending control refused it before the balance was even consulted. */
+  | LimitBreach;
 
 export interface Account {
   id: string;
