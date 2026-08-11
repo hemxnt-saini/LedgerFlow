@@ -5,10 +5,13 @@ import { checkLimits } from '../domain/limits';
 import {
   canRefund,
   deriveIdempotencyKey,
+  isUnderReview,
   moveFunds,
   requestFingerprint,
+  type PaymentStatus,
   type SimulateMode,
 } from '../domain/payment';
+import { assessRisk } from '../domain/risk';
 import { HttpError, conflict, notFound } from '../lib/http-error';
 import { currentCorrelationId } from '../lib/logger';
 import { toLedgerEntryDto, type LedgerEntryDto } from '../models/ledger.model';
@@ -105,6 +108,28 @@ export async function initiatePayment(
         ? moveFunds(sender, clearing, amountCents)
         : ({ ok: false, failureReason: decision.breach } as const);
 
+      // Risk screening, after the limits and only if the money can actually
+      // move. A hold is not a refusal - the funds are secured in clearing
+      // first and a person then decides whether to release them. Reviewing
+      // before securing would let the balance be spent elsewhere while
+      // someone deliberates.
+      const risk = authorise.ok
+        ? assessRisk(
+            {
+              amountCents,
+              payeeIsNew: !(await payments.hasPaidBefore(client, sender.id, receiver.id)),
+              recentCount: spend.recentCount,
+            },
+            config.risk,
+          )
+        : { hold: false, flags: [] };
+
+      const status: PaymentStatus = !authorise.ok
+        ? 'FAILED'
+        : risk.hold
+          ? 'HELD_FOR_REVIEW'
+          : 'PROCESSING';
+
       // Balances, the payment row, the ledger entries and the outbox event all
       // commit together - or none of them do.
       const row = await payments.insert(client, {
@@ -112,13 +137,14 @@ export async function initiatePayment(
         toAccountId: receiver.id,
         amountCents,
         note,
-        status: authorise.ok ? 'PROCESSING' : 'FAILED',
+        status,
         failureReason: authorise.ok ? null : authorise.failureReason,
         // Only a client-supplied key is persisted. A derived key is a content
         // hash, and the UNIQUE constraint would then permanently block the
         // same payer sending the same payee the same amount ever again.
         idempotencyKey: suppliedKey,
         simulateMode,
+        holdReasons: risk.flags,
         settleDelayMs: config.saga.settleDelayMs,
         correlationId: currentCorrelationId() ?? null,
       });
@@ -133,10 +159,17 @@ export async function initiatePayment(
         return toPaymentDto(row);
       }
 
+      // The authorise leg is identical whether the payment is held or not -
+      // the money is in clearing either way. Only what happens next differs.
       await accounts.updateBalance(client, sender.id, authorise.fromBalanceCents);
       await accounts.updateBalance(client, clearing.id, authorise.toBalanceCents);
       await ledger.postJournal(client, row.id, 'AUTHORISE', authorise.entries);
-      await outbox.enqueue(client, 'payment.initiated', body);
+
+      await outbox.enqueue(
+        client,
+        risk.hold ? 'payment.held' : 'payment.initiated',
+        risk.hold ? { ...body, holdReasons: risk.flags } : body,
+      );
       return toPaymentDto(row);
     });
   } catch (err) {
@@ -178,6 +211,49 @@ export async function getPaymentWithLedger(
 
   const entries = await ledger.findByPaymentId(pool, id);
   return { ...toPaymentDto(row), ledger: entries.map(toLedgerEntryDto) };
+}
+
+/** The review queue: payments whose funds are held pending a decision. */
+export async function listHeldForReview(limit: number): Promise<PaymentDto[]> {
+  const rows = await payments.listHeld(pool, limit);
+  return rows.map(toPaymentDto);
+}
+
+/**
+ * Release held funds.
+ *
+ * Puts the payment back on the ordinary settlement path rather than settling
+ * it here, so there is exactly one route to COMPLETED and the retry, backoff
+ * and compensation behaviour is the same as for any other payment.
+ */
+export async function approvePayment(id: string): Promise<PaymentDto> {
+  return withTransaction(async (client) => {
+    const row = await payments.findByIdForUpdate(client, id);
+    if (!row) throw notFound('PAYMENT_NOT_FOUND');
+    if (!isUnderReview(row.status)) throw conflict(`NOT_UNDER_REVIEW_FROM_${row.status}`);
+
+    const updatedAt = await payments.markApproved(client, id);
+    await outbox.enqueue(client, 'payment.approved', toEventBody(row, updatedAt));
+
+    const updated = await payments.findById(client, id);
+    return toPaymentDto(updated!);
+  });
+}
+
+/**
+ * Refuse held funds: the same compensating action a stranded payment uses, so
+ * both paths post an identical COMPENSATE journal and cannot drift apart.
+ */
+export async function rejectPayment(id: string): Promise<PaymentDto> {
+  return withTransaction(async (client) => {
+    const row = await payments.findByIdForUpdate(client, id);
+    if (!row) throw notFound('PAYMENT_NOT_FOUND');
+    if (!isUnderReview(row.status)) throw conflict(`NOT_UNDER_REVIEW_FROM_${row.status}`);
+
+    await compensate(client, row, 'REJECTED_IN_REVIEW');
+    const updated = await payments.findById(client, id);
+    return toPaymentDto(updated!);
+  });
 }
 
 /**

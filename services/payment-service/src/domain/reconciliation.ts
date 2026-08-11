@@ -63,7 +63,7 @@ export interface ReconciliationInput {
   ledger: Map<string, LedgerTotals>;
   unbalancedJournals: UnbalancedJournal[];
   clearingAccountId: string;
-  /** Sum of every payment still PROCESSING or AWAITING_REFUND. */
+  /** Sum of every payment whose money is sitting in clearing. */
   inFlightCents: number;
   /** accountId -> balance according to Redis. Omit to skip the check. */
   readModel?: Map<string, number>;

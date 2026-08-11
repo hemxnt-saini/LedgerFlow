@@ -78,6 +78,19 @@ export const config = {
   },
 
   /**
+   * When a payment is worth a person looking at before the funds are released.
+   *
+   * Low thresholds on purpose: a review queue that never fills is not a review
+   * queue anyone can see working. A real deployment would tune these from
+   * observed fraud rates, not from what makes a good demonstration.
+   */
+  risk: {
+    largeAmountCents: num(process.env.RISK_LARGE_AMOUNT_CENTS, 50_000), // $500
+    newPayeeAmountCents: num(process.env.RISK_NEW_PAYEE_CENTS, 20_000), // $200
+    rapidFireCount: num(process.env.RISK_RAPID_FIRE_COUNT, 5),
+  },
+
+  /**
    * Endpoints that exist to break things on purpose, so the controls can be
    * seen working rather than taken on trust.
    *

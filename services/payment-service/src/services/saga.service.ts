@@ -3,7 +3,7 @@ import { config } from '../config';
 import {
   MAX_SETTLE_ATTEMPTS,
   backoffMs,
-  canRefund,
+  canCompensate,
   canSettle,
   isExhausted,
   moveFunds,
@@ -97,14 +97,15 @@ export async function settle(
 /**
  * The compensating action: return stranded funds from clearing to the sender.
  *
- * Shared by the automatic worker and the manual refund endpoint, so both take
- * exactly the same path and cannot drift apart.
+ * Shared by the automatic worker, the manual refund endpoint and a rejected
+ * review, so all three take exactly the same path and cannot drift apart.
  */
 export async function compensate(
   client: PoolClient,
   row: PaymentRow,
+  reason?: string,
 ): Promise<PaymentStatus> {
-  if (!canRefund(row.status)) return row.status;
+  if (!canCompensate(row.status)) return row.status;
 
   const locked = await accounts.lockMany(client, [clearingId, row.from_account_id]);
   const clearing = locked.get(clearingId)!;
@@ -121,7 +122,10 @@ export async function compensate(
   await accounts.updateBalance(client, sender.id, move.toBalanceCents);
   await ledger.postJournal(client, row.id, 'COMPENSATE', move.entries);
 
-  const updatedAt = await payments.markRefunded(client, row.id);
-  await outbox.enqueue(client, 'payment.refunded', toEventBody(row, updatedAt));
+  const updatedAt = await payments.markRefunded(client, row.id, reason);
+  await outbox.enqueue(client, 'payment.refunded', {
+    ...toEventBody(row, updatedAt),
+    ...(reason ? { failureReason: reason } : {}),
+  });
   return 'REFUNDED';
 }

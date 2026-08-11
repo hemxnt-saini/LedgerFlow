@@ -16,6 +16,20 @@ import { badRequest } from '../../lib/http-error';
 export const paymentRoutes = Router();
 
 /**
+ * The review queue.
+ *
+ * Declared before `/payments/:id` so "reviews" is never parsed as a payment
+ * id - Express matches in declaration order.
+ */
+paymentRoutes.get(
+  '/payments/reviews',
+  asyncRoute(async (req, res) => {
+    const limit = clampLimit(req.query.limit, 50, config.limits.paymentsPageSize);
+    res.json({ reviews: await paymentService.listHeldForReview(limit) });
+  }),
+);
+
+/**
  * Leg 1 of the saga. Returns 201 with status PROCESSING - the money has left
  * the sender and is held in clearing, but the payment is not finished.
  */
@@ -70,5 +84,23 @@ paymentRoutes.post(
   asyncRoute(async (req, res) => {
     const id = requireUuid(req.params.id, 'INVALID_PAYMENT_ID');
     res.json(await paymentService.refundPayment(id));
+  }),
+);
+
+/** Release held funds: the payment rejoins the ordinary settlement path. */
+paymentRoutes.post(
+  '/payments/:id/approve',
+  asyncRoute(async (req, res) => {
+    const id = requireUuid(req.params.id, 'INVALID_PAYMENT_ID');
+    res.json(await paymentService.approvePayment(id));
+  }),
+);
+
+/** Refuse held funds: compensated back to the sender, same as a stuck payment. */
+paymentRoutes.post(
+  '/payments/:id/reject',
+  asyncRoute(async (req, res) => {
+    const id = requireUuid(req.params.id, 'INVALID_PAYMENT_ID');
+    res.json(await paymentService.rejectPayment(id));
   }),
 );
