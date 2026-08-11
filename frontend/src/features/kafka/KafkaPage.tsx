@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listAccounts } from '../../api/accounts';
-import { listDeadLetters, replayDeadLetter } from '../../api/dlq';
+import { listDeadLetters, poisonTopic, replayDeadLetter } from '../../api/dlq';
 import { getOverview, pauseConsumer, rebuildReadModel, resumeConsumer } from '../../api/kafka';
 import { sendPayment } from '../../api/payments';
 import { PageShell } from '../../components/PageShell';
@@ -127,6 +127,17 @@ export function KafkaPage() {
     const result = await rebuildReadModel();
     setControlOut(JSON.stringify(result, null, 2));
     toast('Read model wiped. Rebuilding from the log.', 'warn');
+  }
+
+  async function onPoison() {
+    const result = await poisonTopic();
+    setControlOut(
+      `Published to ${result.topic}:\n  ${result.payload}\n\n` +
+        'The consumer cannot parse it. Watch it get parked below rather than\n' +
+        'dropped, and note that the projection keeps running either way.',
+    );
+    toast('Poison message published. Watch the DLQ.', 'warn');
+    setTimeout(() => void refreshDlq(), 6000);
   }
 
   async function onBurst() {
@@ -308,6 +319,9 @@ export function KafkaPage() {
                 <button id="rebuild" onClick={onRebuild}>
                   Rebuild read model
                 </button>
+                <button id="poison" className="danger" onClick={onPoison}>
+                  Park a poison message
+                </button>
               </div>
               <p className="tiny muted" style={{ marginTop: 10 }}>
                 <strong>Pause, then send a burst.</strong> The wallet keeps working and the
@@ -319,6 +333,14 @@ export function KafkaPage() {
                 <strong>Rebuild</strong> deletes the entire read model and rewinds every
                 partition to offset zero. It comes back identical, because the log is the
                 source of truth and Redis is only a cache of it.
+              </p>
+              <p className="tiny muted">
+                <strong>Park a poison message</strong> publishes bytes the consumer cannot
+                parse. It does not stop the projection and it is not dropped — it goes to
+                the parking topic below, where it can be inspected and replayed. Only
+                genuinely unprocessable messages are parked; a Redis outage is retried and
+                left to block instead, because blocking is recoverable and discarding
+                thousands of good events is not.
               </p>
               <pre id="control-out" className={controlOut === null ? 'hidden' : undefined}>
                 {controlOut}
