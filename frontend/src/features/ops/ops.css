@@ -1,0 +1,25 @@
+.page-ops .review {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+.page-ops .review .amount-big {
+  font-size: 1.25rem;
+  font-weight: 660;
+  font-variant-numeric: tabular-nums;
+}
+.page-ops .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.page-ops .flag {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--warn);
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+}
+.page-ops .decide { display: flex; gap: 8px; flex-wrap: wrap; }
