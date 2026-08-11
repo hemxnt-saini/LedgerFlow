@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { listAccounts } from '../../api/accounts';
+import { getLimits, listAccounts } from '../../api/accounts';
 import * as readModel from '../../api/read-model';
 import { useToasts } from '../../hooks/useToasts';
-import type { Account, ActivityEntry, ProjectedPayment, Stats } from '../../types/api';
+import type {
+  Account,
+  AccountLimitsView,
+  ActivityEntry,
+  ProjectedPayment,
+  Stats,
+} from '../../types/api';
 
 const STORAGE_KEY = 'walletUserId';
 
@@ -19,6 +25,8 @@ export interface WalletData {
   transactions: ProjectedPayment[];
   activity: ActivityEntry[];
   stats: Stats | null;
+  /** Spending controls and today's usage. Null until first loaded. */
+  limits: AccountLimitsView | null;
   /** True once the account list has been fetched at least once. */
   ready: boolean;
   /** True once the read model has answered at least once for this user. */
@@ -40,6 +48,7 @@ export function useWalletData(): WalletData {
   const [transactions, setTransactions] = useState<ProjectedPayment[]>([]);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [limits, setLimits] = useState<AccountLimitsView | null>(null);
   const [ready, setReady] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -106,6 +115,12 @@ export function useWalletData(): WalletData {
     }
     degradedRef.current = degraded;
     setHydrated(true);
+
+    // Limits live on the write side, so they are fetched separately: a read
+    // model outage must not blank out the caps that are still being enforced.
+    getLimits(current.meId)
+      .then(setLimits)
+      .catch(() => undefined);
   }, [toast]);
 
   const refreshTimer = useRef<number | undefined>(undefined);
@@ -146,6 +161,7 @@ export function useWalletData(): WalletData {
     transactions,
     activity,
     stats,
+    limits,
     ready,
     hydrated,
     offline,

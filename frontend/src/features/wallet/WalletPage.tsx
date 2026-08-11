@@ -11,6 +11,7 @@ import type { Payment, StreamEvent } from '../../types/api';
 import { ActivityFeed } from './ActivityFeed';
 import { BalanceCard } from './BalanceCard';
 import { FriendsList } from './FriendsList';
+import { LimitsCard } from './LimitsCard';
 import { LoginScreen } from './LoginScreen';
 import { NotificationBell } from './NotificationBell';
 import { PaymentDetailModal } from './PaymentDetailModal';
@@ -184,6 +185,7 @@ export function WalletPage() {
                   inFlight={inFlight}
                   onSend={() => openSend()}
                 />
+                <LimitsCard data={wallet.limits} />
                 <StatsPanel stats={wallet.stats} inFlightCount={inFlight.length} />
                 <TransactionList
                   transactions={wallet.transactions}
@@ -213,6 +215,7 @@ export function WalletPage() {
           meId={meId}
           meName={me.name}
           balanceCents={balanceCents}
+          limits={wallet.limits}
           presetFriendId={sendPreset}
           nameOf={nameOf}
           onClose={() => setSendOpen(false)}

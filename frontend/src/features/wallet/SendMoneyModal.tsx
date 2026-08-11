@@ -5,7 +5,7 @@ import { Modal, ReviewLine } from '../../components/Modal';
 import { useToasts } from '../../hooks/useToasts';
 import { humanise } from '../../lib/labels';
 import { fmt, toCents } from '../../lib/money';
-import type { Account, Payment, SimulateMode } from '../../types/api';
+import type { Account, AccountLimitsView, Payment, SimulateMode } from '../../types/api';
 
 interface Draft {
   toAccountId: string;
@@ -19,10 +19,41 @@ interface Props {
   meId: string;
   meName: string;
   balanceCents: number;
+  limits: AccountLimitsView | null;
   presetFriendId?: string | null;
   nameOf: (id: string) => string;
   onClose: () => void;
   onSent: (payment: Payment) => void;
+}
+
+/**
+ * The first thing that will go wrong with this amount, if anything.
+ *
+ * Purely advisory. Every one of these is re-evaluated inside the authorise
+ * transaction with the sender's row locked, which is the only place the
+ * answer can be trusted - between rendering this and pressing send, another
+ * payment could have used up the allowance.
+ */
+function warningFor(
+  amountCents: number,
+  balanceCents: number,
+  limits: AccountLimitsView | null,
+): string | null {
+  if (limits && amountCents > limits.limits.maxPaymentCents) {
+    return `Single payments are capped at ${fmt(limits.limits.maxPaymentCents)}. It will be declined.`;
+  }
+  if (limits && amountCents > limits.remainingTodayCents) {
+    return `Only ${fmt(limits.remainingTodayCents)} left of today's ${fmt(
+      limits.limits.dailyLimitCents,
+    )} limit. It will be declined.`;
+  }
+  if (limits && limits.usage.recentCount >= limits.limits.velocityMax) {
+    return `You have sent ${limits.usage.recentCount} payments in the last ${limits.usage.windowSeconds}s. It will be declined.`;
+  }
+  if (amountCents > balanceCents) {
+    return `That is more than your ${fmt(balanceCents)} balance. It will be declined.`;
+  }
+  return null;
 }
 
 /** Steps 1 and 2 of the send flow: compose, then confirm before money moves. */
@@ -31,6 +62,7 @@ export function SendMoneyModal({
   meId,
   meName,
   balanceCents,
+  limits,
   presetFriendId,
   nameOf,
   onClose,
@@ -46,23 +78,27 @@ export function SendMoneyModal({
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
+  const dollars = Number(amount);
+  const amountCents =
+    Number.isFinite(dollars) && dollars > 0 ? toCents(dollars) : 0;
+
+  // Live, not on submit. A limit you are told about after pressing Review is
+  // still technically before the money moves, but the point of showing
+  // headroom is to catch it while the number is being typed.
+  //
+  // Advisory only, and never a block: the backend is the authority on every
+  // one of these and re-checks them under a row lock. Watching one get
+  // declined for real is more informative than being stopped here.
+  const warning = amountCents > 0 ? warningFor(amountCents, balanceCents, limits) : null;
+  const message = error ?? warning;
+
   function review(event: FormEvent) {
     event.preventDefault();
-    const dollars = Number(amount);
-    if (!Number.isFinite(dollars) || dollars <= 0) {
+    if (amountCents === 0) {
       setError('Enter an amount greater than zero.');
       return;
     }
-
-    const amountCents = toCents(dollars);
-    // Over-balance is a warning, not a block: the backend is the authority on
-    // whether it can be paid, and watching it get declined is informative.
-    if (amountCents > balanceCents) {
-      setError(`That is more than your ${fmt(balanceCents)} balance. It will be declined.`);
-    } else {
-      setError(null);
-    }
-
+    setError(null);
     setDraft({ toAccountId: to, amountCents, note: note.trim(), simulate });
   }
 
@@ -140,8 +176,18 @@ export function SendMoneyModal({
             step="0.01"
             placeholder="25.00"
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => {
+              setAmount(event.target.value);
+              setError(null);
+            }}
           />
+          {limits && (
+            <span className="tiny muted" id="send-headroom">
+              {`${fmt(limits.remainingTodayCents)} left of today's ${fmt(
+                limits.limits.dailyLimitCents,
+              )} limit · ${fmt(limits.limits.maxPaymentCents)} max per payment`}
+            </span>
+          )}
         </label>
 
         <label className="field">
@@ -176,10 +222,10 @@ export function SendMoneyModal({
 
         <div
           id="send-error"
-          className={`small${error ? '' : ' hidden'}`}
+          className={`small${message ? '' : ' hidden'}`}
           style={{ color: 'var(--bad)', marginTop: 10 }}
         >
-          {error}
+          {message}
         </div>
 
         <div className="row" style={{ marginTop: 16 }}>
