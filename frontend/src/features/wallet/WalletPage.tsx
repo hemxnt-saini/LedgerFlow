@@ -50,8 +50,19 @@ export function WalletPage() {
       if (outgoing || incoming) {
         const other = nameOf(outgoing ? event.toAccountId : event.fromAccountId);
         const amount = fmt(event.amountCents);
-        const alert = (text: string, tone: 'good' | 'bad' | 'warn') => {
-          notifications.push(text);
+        /**
+         * Toast, and only sometimes the bell.
+         *
+         * Every alert used to do both, which made the bell a second copy of
+         * the toasts and its badge meaningless. A toast acknowledges what you
+         * just did and is fine to miss; the bell is for things that happened
+         * *to* you or went wrong, which are worth finding later. So an
+         * outgoing payment completing is a toast alone - you pressed the
+         * button, you know - while money arriving, or anything being
+         * declined, held or stuck, also lands in the bell.
+         */
+        const alert = (text: string, tone: 'good' | 'bad' | 'warn', keep = true) => {
+          if (keep) notifications.push(text);
           toast(text, tone);
         };
 
@@ -59,6 +70,7 @@ export function WalletPage() {
           alert(
             outgoing ? `You paid ${other} ${amount}` : `${other} sent you ${amount}`,
             'good',
+            !outgoing,
           );
         } else if (event.type === 'payment.failed' && outgoing) {
           alert(
@@ -68,7 +80,8 @@ export function WalletPage() {
         } else if (event.type === 'payment.held' && outgoing) {
           alert(`${amount} to ${other} is held for review`, 'warn');
         } else if (event.type === 'payment.approved' && outgoing) {
-          alert(`${amount} to ${other} was released by a reviewer`, 'good');
+          // The hold is what needed attention; being released is the all-clear.
+          alert(`${amount} to ${other} was released by a reviewer`, 'good', false);
         } else if (event.type === 'payment.stuck' && outgoing) {
           alert(`${amount} to ${other} is stuck - a refund is on its way`, 'warn');
         } else if (event.type === 'payment.refunded' && outgoing) {
