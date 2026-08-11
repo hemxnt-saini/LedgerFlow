@@ -60,6 +60,25 @@ export interface ProjectedPayment {
   updatedAt: string;
 }
 
+export interface AccountLimits {
+  maxPaymentCents: number;
+  dailyLimitCents: number;
+  /** Payments allowed inside one rolling velocity window. */
+  velocityMax: number;
+}
+
+export interface AccountLimitsView {
+  accountId: string;
+  limits: AccountLimits;
+  usage: {
+    todayCents: number;
+    recentCount: number;
+    windowSeconds: number;
+  };
+  /** Headroom against the daily cap. Advisory - the authorise leg re-checks. */
+  remainingTodayCents: number;
+}
+
 export type Severity = 'OK' | 'WARN' | 'DRIFT';
 
 export type FindingCode =

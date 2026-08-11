@@ -21,6 +21,9 @@ const REASON_LABEL: Record<string, string> = {
   IDEMPOTENCY_KEY_REUSED:
     'That idempotency key was already used for a different payment',
   NOT_REFUNDABLE_FROM_COMPLETED: 'This payment arrived - there is nothing to refund',
+  AMOUNT_ABOVE_LIMIT: 'That is more than your per-payment limit',
+  DAILY_LIMIT_EXCEEDED: "That would take you past today's sending limit",
+  VELOCITY_EXCEEDED: 'You are sending too quickly - wait a moment',
   ACCOUNT_NOT_FOUND: 'That account no longer exists',
   NOT_FOUND: 'Not found',
 };
