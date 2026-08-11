@@ -91,6 +91,21 @@ a { color: var(--accent); }
 .topbar .row { flex-wrap: wrap; justify-content: flex-end; }
 
 .brand { display: flex; align-items: center; gap: 10px; }
+
+/* ---------- section tabs ---------- */
+
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; }
+.tab {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 6px 11px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.tab:hover { background: var(--surface-2); color: var(--text); }
+.tab.on { background: var(--accent-soft); color: var(--accent); font-weight: 560; }
+
 .brand .logo {
   width: 30px; height: 30px; border-radius: 9px;
   background: var(--accent); color: #fff;
@@ -351,7 +366,9 @@ label.field > span { display: block; font-size: 0.78rem; color: var(--muted); ma
 
 /* ---------- login ---------- */
 
-.login-wrap { max-width: 620px; margin: 9vh auto; padding: 0 16px; }
+/* Sits inside the landing stack now rather than being the whole page, so it
+   keeps the narrow centred column but drops the viewport-sized margin. */
+.login-wrap { max-width: 620px; margin: 0 auto 16px; }
 .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .person {
   border: 1px solid var(--border); background: var(--surface-2);
