@@ -30,12 +30,14 @@ CREATE TABLE IF NOT EXISTS payments (
   amount_cents     BIGINT NOT NULL CHECK (amount_cents > 0),
   note             TEXT,
   status           TEXT NOT NULL CHECK (status IN
-                     ('PROCESSING','COMPLETED','FAILED','AWAITING_REFUND','REFUNDED')),
+                     ('PROCESSING','HELD_FOR_REVIEW','COMPLETED','FAILED','AWAITING_REFUND','REFUNDED')),
   failure_reason   TEXT,
   idempotency_key  TEXT UNIQUE,
   -- Demo affordance: makes the settle leg fail on purpose. TRANSIENT heals
   -- before the retries run out; PERMANENT ends in compensation.
   simulate_mode    TEXT NOT NULL DEFAULT 'NONE',
+  -- Why the risk screen stopped this payment. Empty for everything else.
+  hold_reasons     TEXT[] NOT NULL DEFAULT '{}',
   -- Retry bookkeeping for leg 2. next_attempt_at is the single scheduling
   -- clock for both workers, so "when should this be looked at again" is one
   -- column rather than an implicit rule about updated_at.
@@ -56,7 +58,7 @@ CREATE INDEX IF NOT EXISTS payments_to_idx   ON payments (to_account_id, created
 -- authorise, so it gets an index shaped like that query.
 CREATE INDEX IF NOT EXISTS payments_spend_idx
   ON payments (from_account_id, created_at DESC)
-  WHERE status IN ('PROCESSING','COMPLETED','AWAITING_REFUND');
+  WHERE status IN ('PROCESSING','HELD_FOR_REVIEW','COMPLETED','AWAITING_REFUND');
 
 -- Append-only. Nothing in this service ever UPDATEs or DELETEs a ledger row.
 --
@@ -124,6 +126,11 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS correlation_id TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS max_payment_cents BIGINT NOT NULL DEFAULT ${controls.maxPaymentCents};
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS daily_limit_cents BIGINT NOT NULL DEFAULT ${controls.dailyLimitCents};
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS velocity_max      INT    NOT NULL DEFAULT ${controls.velocityMax};
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS hold_reasons TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check;
+ALTER TABLE payments ADD CONSTRAINT payments_status_check CHECK (status IN
+  ('PROCESSING','HELD_FOR_REVIEW','COMPLETED','FAILED','AWAITING_REFUND','REFUNDED'));
+DROP INDEX IF EXISTS payments_spend_idx;
 `;
 
 export async function initSchema(): Promise<void> {

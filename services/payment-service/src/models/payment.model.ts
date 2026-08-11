@@ -11,6 +11,8 @@ export interface PaymentRow {
   simulate_mode: SimulateMode;
   attempts: number;
   next_attempt_at: Date;
+  /** Why the risk screen held this payment. Empty for everything else. */
+  hold_reasons: string[];
   correlation_id: string | null;
   created_at: Date;
   updated_at: Date;
@@ -28,6 +30,7 @@ export interface PaymentDto {
   attempts: number;
   maxAttempts: number;
   nextAttemptAt: Date;
+  holdReasons: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +49,7 @@ export const toPaymentDto = (row: PaymentRow): PaymentDto => ({
   // hardcoding the policy.
   maxAttempts: MAX_SETTLE_ATTEMPTS,
   nextAttemptAt: row.next_attempt_at,
+  holdReasons: row.hold_reasons ?? [],
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });

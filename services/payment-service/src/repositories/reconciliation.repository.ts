@@ -50,10 +50,17 @@ export async function snapshot(): Promise<LedgerSnapshot> {
              OR sum(CASE WHEN direction = 'CREDIT' THEN amount_cents ELSE -amount_cents END) <> 0
           LIMIT 50`,
       ),
+      // Everything the clearing account is holding. A held payment has been
+      // authorised, so its money is in clearing exactly like a processing one.
       pool.query<{ total: number }>(
         `SELECT coalesce(sum(amount_cents), 0)::bigint AS total FROM payments
-          WHERE status IN ('PROCESSING','AWAITING_REFUND')`,
+          WHERE status IN ('PROCESSING','HELD_FOR_REVIEW','AWAITING_REFUND')`,
       ),
+      // Work the system will finish by itself, which is the only kind that
+      // excuses a lagging read model. HELD_FOR_REVIEW is deliberately absent:
+      // it waits on a person and could sit there for days, and treating that
+      // as "still catching up" would downgrade genuine drift to a warning for
+      // as long as one payment stayed in the queue.
       pool.query<{ unpublished: number; in_flight: number }>(
         `SELECT (SELECT count(*) FROM outbox WHERE published_at IS NULL)::int AS unpublished,
                 (SELECT count(*) FROM payments

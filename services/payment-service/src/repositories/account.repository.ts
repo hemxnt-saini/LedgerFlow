@@ -138,7 +138,7 @@ export async function spendSoFar(
          FILTER (WHERE created_at >= now() - make_interval(secs => $2))::int AS recent_count
        FROM payments
       WHERE from_account_id = $1
-        AND status IN ('PROCESSING','COMPLETED','AWAITING_REFUND')`,
+        AND status IN ('PROCESSING','HELD_FOR_REVIEW','COMPLETED','AWAITING_REFUND')`,
     [accountId, velocityWindowSeconds],
   );
   return { todayCents: rows[0].today_cents, recentCount: rows[0].recent_count };
