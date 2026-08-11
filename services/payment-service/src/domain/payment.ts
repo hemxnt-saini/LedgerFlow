@@ -28,6 +28,12 @@ import { config } from '../config';
 export type PaymentStatus =
   /** Sender debited, funds held in the clearing account. */
   | 'PROCESSING'
+  /**
+   * Authorised but not settled: the funds are secured in clearing and a
+   * person has to decide whether to release them. Waiting on a human, not on
+   * the system - no worker will move this on its own.
+   */
+  | 'HELD_FOR_REVIEW'
   /** Receiver credited. Terminal. */
   | 'COMPLETED'
   /** Rejected before any money moved. Terminal. */
@@ -45,6 +51,8 @@ export type FailureReason =
   | 'INVALID_AMOUNT'
   | 'SAME_ACCOUNT'
   | 'INSUFFICIENT_FUNDS'
+  /** A reviewer refused to release funds that were already held. */
+  | 'REJECTED_IN_REVIEW'
   /** A spending control refused it before the balance was even consulted. */
   | LimitBreach;
 
@@ -131,11 +139,39 @@ export const canSettle = (status: PaymentStatus): boolean =>
 export const canRefund = (status: PaymentStatus): boolean =>
   status === 'AWAITING_REFUND';
 
+/** A payment sitting in the review queue, waiting on a decision. */
+export const isUnderReview = (status: PaymentStatus): boolean =>
+  status === 'HELD_FOR_REVIEW';
+
+/**
+ * Statuses whose money can be returned from clearing to the sender.
+ *
+ * Wider than `canRefund` on purpose: a rejected review compensates by exactly
+ * the same route a stranded payment does, but the public refund endpoint must
+ * still only accept AWAITING_REFUND. A held payment is resolved by a reviewer
+ * approving or rejecting it, not by the payer pressing refund.
+ */
+export const canCompensate = (status: PaymentStatus): boolean =>
+  status === 'AWAITING_REFUND' || status === 'HELD_FOR_REVIEW';
+
+/**
+ * Money that has left the sender and not yet reached anyone. The clearing
+ * account must hold exactly this set, and it is what an account has "spent"
+ * for the purposes of a daily cap.
+ */
+export const holdsFundsInClearing = (status: PaymentStatus): boolean =>
+  status === 'PROCESSING' ||
+  status === 'HELD_FOR_REVIEW' ||
+  status === 'AWAITING_REFUND';
+
 export const isTerminal = (status: PaymentStatus): boolean =>
   status === 'COMPLETED' || status === 'FAILED' || status === 'REFUNDED';
 
 /** Every legal move in the state machine. Anything else is a bug. */
 const TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
+  // Approving a held payment puts it back on the ordinary settlement path
+  // rather than settling it directly, so there is one route to COMPLETED.
+  HELD_FOR_REVIEW: ['PROCESSING', 'REFUNDED'],
   PROCESSING: ['COMPLETED', 'AWAITING_REFUND'],
   AWAITING_REFUND: ['REFUNDED'],
   COMPLETED: [],
