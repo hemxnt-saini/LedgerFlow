@@ -86,6 +86,24 @@ result. Every step checks before acting, so re-running it is safe.
 covered in step 2b below. Do that first or the script's final check will fail
 even though the stack is running correctly.
 
+> **This one-liner needs the repository to be public.** `raw.githubusercontent`
+> returns 404 for a private repo, and an unauthenticated `git clone` of one
+> fails with an error indistinguishable from "no such repository".
+>
+> For a portfolio project, public is usually the point — an interviewer
+> following the live URL will want the code. If you would rather keep it
+> private, the script supports both alternatives:
+>
+> ```bash
+> # a) read-only deploy key (Settings -> Deploy keys on the repo)
+> ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519 && cat /root/.ssh/id_ed25519.pub
+> REPO=git@github.com:hemxnt-saini/LedgerFlow.git sudo -E ./bootstrap.sh DOMAIN EMAIL
+>
+> # b) copy the tree up instead of cloning
+> rsync -az --exclude node_modules --exclude .git ./ SERVER:/opt/ledgerflow/
+> # then run bootstrap.sh on the server; it uses what is already there
+> ```
+
 The rest of this section is the same thing done by hand.
 
 ### 1. Install Docker on the server

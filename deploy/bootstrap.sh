@@ -9,9 +9,11 @@
 # .env is never overwritten.
 set -euo pipefail
 
-REPO=https://github.com/hemxnt-saini/LedgerFlow.git
-BRANCH=develop
-TARGET=/opt/ledgerflow
+# Override REPO to clone over SSH instead, which is what a private repository
+# needs: REPO=git@github.com:hemxnt-saini/LedgerFlow.git sudo -E ./bootstrap.sh ...
+REPO=${REPO:-https://github.com/hemxnt-saini/LedgerFlow.git}
+BRANCH=${BRANCH:-develop}
+TARGET=${TARGET:-/opt/ledgerflow}
 
 DOMAIN=${1:-${DOMAIN:-}}
 EMAIL=${2:-${EMAIL:-}}
@@ -94,13 +96,44 @@ netfilter-persistent save >/dev/null 2>&1 && echo "    saved for reboot"
 # ------------------------------------------------------------------- source
 step "Source at $TARGET"
 if [ -d "$TARGET/.git" ]; then
-  git -C "$TARGET" fetch --quiet origin "$BRANCH"
-  git -C "$TARGET" checkout --quiet "$BRANCH"
-  git -C "$TARGET" reset --hard --quiet "origin/$BRANCH"
-  echo "    updated to $(git -C "$TARGET" rev-parse --short HEAD)"
+  # Updating is best-effort: a private repo without credentials on the box
+  # cannot fetch, and that is not a reason to refuse to deploy what is here.
+  if git -C "$TARGET" fetch --quiet origin "$BRANCH" 2>/dev/null; then
+    git -C "$TARGET" checkout --quiet "$BRANCH"
+    git -C "$TARGET" reset --hard --quiet "origin/$BRANCH"
+    echo "    updated to $(git -C "$TARGET" rev-parse --short HEAD)"
+  else
+    echo "    could not fetch (private repo without credentials?), using the checkout as-is"
+  fi
+elif [ -f "$TARGET/deploy/deploy.sh" ]; then
+  # Copied up with rsync/scp rather than cloned. Nothing to update.
+  echo "    using the existing copy at $TARGET"
 else
   command -v git >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git
-  git clone --quiet --branch "$BRANCH" "$REPO" "$TARGET"
+  if ! git clone --quiet --branch "$BRANCH" "$REPO" "$TARGET" 2>/dev/null; then
+    cat >&2 <<MSG
+
+    Could not clone $REPO
+
+    If the repository is private, an unauthenticated clone gets no useful
+    error - GitHub reports it the same way as one that does not exist. Three
+    ways forward:
+
+      1. Make the repository public. For a portfolio project this is usually
+         the point anyway, and the one-line install then works as written.
+
+      2. Clone over SSH with a read-only deploy key:
+           ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519
+           cat /root/.ssh/id_ed25519.pub
+         Add that key under Settings -> Deploy keys on the repository, then:
+           REPO=git@github.com:hemxnt-saini/LedgerFlow.git sudo -E $0 $DOMAIN $EMAIL
+
+      3. Copy the working tree up from your machine instead:
+           rsync -az --exclude node_modules --exclude .git ./ SERVER:$TARGET/
+         then re-run this script - it will use what is already there.
+MSG
+    exit 1
+  fi
   echo "    cloned $(git -C "$TARGET" rev-parse --short HEAD)"
 fi
 chown -R "$OWNER":"$OWNER" "$TARGET"
