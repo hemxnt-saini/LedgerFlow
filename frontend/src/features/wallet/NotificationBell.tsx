@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { EmptyState } from '../../components/EmptyState';
+import { BellIcon } from '../../components/Icon';
 import { useOnClickOutside } from '../../hooks/useOnClickOutside';
 import { ago } from '../../lib/time';
 import type { Notification } from './useWalletData';
@@ -25,8 +26,10 @@ export function NotificationBell({ items, unread, onOpen, onClear }: Props) {
     <div className="bell" style={{ position: 'relative' }} ref={wrapperRef}>
       <button
         id="bell-btn"
-        className="ghost"
-        aria-label="Notifications"
+        className="ghost icon"
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+        aria-expanded={open}
+        aria-haspopup="true"
         onClick={() => {
           setOpen((current) => {
             // Opening the panel is what marks them read - the badge should
@@ -36,7 +39,7 @@ export function NotificationBell({ items, unread, onOpen, onClear }: Props) {
           });
         }}
       >
-        🔔
+        <BellIcon />
         <span id="bell-count" className={`count${unread === 0 ? ' hidden' : ''}`}>
           {unread}
         </span>
@@ -51,7 +54,7 @@ export function NotificationBell({ items, unread, onOpen, onClear }: Props) {
         </div>
         <div id="notifications" className="list">
           {items.length === 0 ? (
-            <EmptyState>Nothing new.</EmptyState>
+            <EmptyState icon={null}>Nothing new.</EmptyState>
           ) : (
             items.slice(0, 30).map((note, index) => (
               <div className="item flat" key={`${note.at}-${index}`}>

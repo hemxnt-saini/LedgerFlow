@@ -19,6 +19,7 @@ interface Toast {
 interface ToastApi {
   toasts: Toast[];
   toast: (text: string, tone?: Tone) => void;
+  dismiss: (id: number) => void;
 }
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -29,16 +30,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
 
-  const toast = useCallback((text: string, tone: Tone = '') => {
-    const id = nextId.current++;
-    setToasts((current) => [...current, { id, text, tone }]);
-    setTimeout(
-      () => setToasts((current) => current.filter((item) => item.id !== id)),
-      LIFETIME_MS,
-    );
+  const dismiss = useCallback((id: number) => {
+    setToasts((current) => current.filter((item) => item.id !== id));
   }, []);
 
-  const value = useMemo(() => ({ toasts, toast }), [toasts, toast]);
+  const toast = useCallback(
+    (text: string, tone: Tone = '') => {
+      const id = nextId.current++;
+      setToasts((current) => [...current, { id, text, tone }]);
+      setTimeout(() => dismiss(id), LIFETIME_MS);
+    },
+    [dismiss],
+  );
+
+  const value = useMemo(() => ({ toasts, toast, dismiss }), [toasts, toast, dismiss]);
   return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
 }
 
