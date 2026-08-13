@@ -1,0 +1,135 @@
+# Production overlay. Use it together with the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# What it changes:
+#   - Nothing but Caddy is reachable from the internet. Postgres, Redis, Kafka
+#     and both services lose their published ports and talk over the compose
+#     network only.
+#   - Data survives a restart. The base file has no volumes because a local
+#     demo is meant to be thrown away; a deployment is not.
+#   - The frontend is built to call /api/*, so every request is same-origin
+#     and HTTPS never blocks it as mixed content.
+#   - Memory limits, so one runaway container cannot take the box down.
+#
+# DOMAIN is required and is what Caddy requests a certificate for.
+# EMAIL is used by Let's Encrypt for expiry warnings and is required - Caddy
+# will not start with an empty one.
+
+services:
+  postgres:
+    # Published ports are removed by overriding with an empty list.
+    ports: !override []
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      # The base file's dev password is fine on a laptop and not on the
+      # internet. Nothing outside this network can reach Postgres either way,
+      # but a default credential is still a default credential.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    ports: !override []
+    restart: unless-stopped
+    # Append-only file on, so a restart does not silently empty the read
+    # model. It would rebuild from Kafka anyway, but not instantly.
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  kafka:
+    ports: !override []
+    restart: unless-stopped
+    environment:
+      # No EXTERNAL listener in production: nothing outside the compose
+      # network should be able to reach the broker at all.
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # A demo box does not need an unbounded log. Seven days of retention
+      # keeps the rebuild-from-log demo honest while capping disk use.
+      KAFKA_CFG_LOG_RETENTION_HOURS: '168'
+      KAFKA_HEAP_OPTS: '-Xmx512m -Xms512m'
+    volumes:
+      - kafka-data:/bitnami/kafka
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  payment-service:
+    ports: !override []
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://payments:${POSTGRES_PASSWORD:?}@postgres:5432/payments
+      # The break-the-books and poison-message controls are the best part of
+      # the demo, so they stay reachable. Set this to false to close them.
+      DEMO_ENDPOINTS: ${DEMO_ENDPOINTS:-true}
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  ledger-query-service:
+    ports: !override []
+    restart: unless-stopped
+    environment:
+      DEMO_ENDPOINTS: ${DEMO_ENDPOINTS:-true}
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  frontend:
+    ports: !override []
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      args:
+        # Same-origin paths. Caddy strips the prefix and forwards.
+        VITE_WRITE_URL: /api/write
+        VITE_READ_URL: /api/read
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # The only thing exposed to the internet. Caddy obtains and renews a
+  # Let's Encrypt certificate on its own - there is no certbot step.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      EMAIL: ${EMAIL:?set EMAIL in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - payment-service
+      - ledger-query-service
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,64 @@
+# One domain in front of the whole stack.
+#
+# Caddy obtains and renews a Let's Encrypt certificate automatically - there
+# is no certbot, no cron, no renewal script. It also redirects HTTP to HTTPS
+# by default.
+#
+# Everything is same-origin, which is why the frontend is built with
+# VITE_WRITE_URL=/api/write. That removes the two problems a split-origin
+# deployment has: HTTPS pages cannot call HTTP APIs, and CORS preflights on
+# every write.
+
+{
+	# Let's Encrypt sends certificate warnings here. Caddy fails to parse an
+	# empty value, so EMAIL is required rather than optional.
+	email {$EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Commands - the payment service. handle_path strips the matched prefix,
+	# so /api/write/accounts arrives at the service as /accounts.
+	handle_path /api/write/* {
+		reverse_proxy payment-service:4000
+	}
+
+	# Queries - the query service, including the Server-Sent Events stream.
+	handle_path /api/read/* {
+		reverse_proxy ledger-query-service:4001 {
+			# SSE must not be buffered. Without this the live feed, the wallet's
+			# balance updates and the Kafka control room all appear frozen: the
+			# events arrive at the proxy and sit there waiting for a buffer to
+			# fill that never does.
+			flush_interval -1
+
+			# The stream is long-lived by design, so the proxy must not time it
+			# out. EventSource would reconnect, but every reconnect is a fresh
+			# HTTP/1.1 connection against a six-per-origin budget.
+			transport http {
+				read_timeout 24h
+			}
+		}
+	}
+
+	# Everything else is the single-page app.
+	handle {
+		reverse_proxy frontend:80
+	}
+
+	header {
+		# Sent on every response. HSTS is deliberately left out - it is hard to
+		# undo if the domain is ever reused for something else, and this is a
+		# demo rather than a bank.
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
