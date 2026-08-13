@@ -65,19 +65,40 @@ docker --version
 
 ### 2. Open the firewall
 
-Ubuntu images vary — this covers the common case.
+There are **two** firewalls on Oracle, and both have to be open. Missing
+either one produces the same symptom — the site simply never responds — which
+is why this step catches almost everyone out.
+
+**a. The cloud firewall.** In the Oracle console: *Networking → Virtual Cloud
+Networks → your VCN → Subnets → your subnet → Security List → Add Ingress
+Rules*. Add two, both with source CIDR `0.0.0.0/0`, IP protocol TCP,
+destination port `80` and `443`. Oracle blocks these at the network layer no
+matter what the server says.
+
+**b. The host firewall.** Oracle's Ubuntu images ship a pre-loaded iptables
+ruleset that rejects everything except SSH, and `ufw` does not manage it —
+enabling `ufw` on top leaves the original REJECT rule in place. Insert the
+rules ahead of it instead:
 
 ```bash
-ufw allow OpenSSH
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw --force enable
-ufw status
+iptables -I INPUT -p tcp --dport 80  -j ACCEPT
+iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+apt-get install -y iptables-persistent   # prompts to save; answer yes
+netfilter-persistent save
 ```
 
-On Oracle Cloud you must **also** open 80 and 443 in the *Security List* for
-your VCN subnet, in the web console. Oracle blocks them at the network layer
-regardless of what `ufw` says, and this catches almost everyone out.
+Confirm 80 and 443 appear *above* any REJECT line:
+
+```bash
+iptables -L INPUT -n --line-numbers
+```
+
+On Hetzner, DigitalOcean and most other images there is no preloaded ruleset,
+and plain `ufw` is enough:
+
+```bash
+ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
+```
 
 ### 3. Get the code
 
