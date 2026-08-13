@@ -3,7 +3,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { BellIcon } from '../../components/Icon';
 import { useOnClickOutside } from '../../hooks/useOnClickOutside';
 import { ago } from '../../lib/time';
-import type { Notification } from './useWalletData';
+import type { Notification } from '../../hooks/useAppStream';
 
 interface Props {
   items: Notification[];

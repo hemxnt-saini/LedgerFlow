@@ -171,34 +171,3 @@ export function useWalletData(): WalletData {
     scheduleRefresh,
   };
 }
-
-/** Notifications are session-only: a bell badge, not a persisted inbox. */
-export interface Notification {
-  text: string;
-  at: string;
-}
-
-export function useNotifications(meId: string | null) {
-  const [items, setItems] = useState<Notification[]>([]);
-  const [unread, setUnread] = useState(0);
-
-  // Switching user starts a fresh session; the previous person's alerts are
-  // not this person's business.
-  useEffect(() => {
-    setItems([]);
-    setUnread(0);
-  }, [meId]);
-
-  const push = useCallback((text: string) => {
-    setItems((current) => [{ text, at: new Date().toISOString() }, ...current].slice(0, 50));
-    setUnread((count) => count + 1);
-  }, []);
-
-  const markRead = useCallback(() => setUnread(0), []);
-  const clear = useCallback(() => {
-    setItems([]);
-    setUnread(0);
-  }, []);
-
-  return { items, unread, push, markRead, clear };
-}

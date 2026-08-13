@@ -1,32 +1,30 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getPayment } from '../../api/payments';
 import { PageShell } from '../../components/PageShell';
-import { useEventStream } from '../../hooks/useEventStream';
+import { useAppStream } from '../../hooks/useAppStream';
 import { useRelativeTimeTick } from '../../hooks/useRelativeTimeTick';
 import { useToasts } from '../../hooks/useToasts';
-import { humanise } from '../../lib/labels';
-import { fmt } from '../../lib/money';
-import type { Payment, StreamEvent } from '../../types/api';
+import type { Payment } from '../../types/api';
 import { ArchitectureCard } from '../overview/ArchitectureCard';
 import { SystemPanel } from '../overview/SystemPanel';
 import { useSystemStatus } from '../overview/useSystemStatus';
+import { AccountMenu } from './AccountMenu';
 import { ActivityFeed } from './ActivityFeed';
 import { BalanceCard } from './BalanceCard';
 import { FriendsList } from './FriendsList';
 import { LimitsCard } from './LimitsCard';
 import { LoginScreen } from './LoginScreen';
-import { NotificationBell } from './NotificationBell';
 import { PaymentDetailModal } from './PaymentDetailModal';
 import { SagaProgressModal } from './SagaProgressModal';
 import { SendMoneyModal } from './SendMoneyModal';
 import { StatsPanel } from './StatsPanel';
 import { TransactionList } from './TransactionList';
-import { useNotifications, useWalletData } from './useWalletData';
+import { useWalletData } from './useWalletData';
 
 export function WalletPage() {
   const { toast } = useToasts();
   const wallet = useWalletData();
-  const notifications = useNotifications(wallet.meId);
+  const { connected, subscribe, setIdentity } = useAppStream();
 
   const [sendOpen, setSendOpen] = useState(false);
   const [sendPreset, setSendPreset] = useState<string | null>(null);
@@ -38,77 +36,35 @@ export function WalletPage() {
 
   const { meId, me, nameOf, scheduleRefresh, reloadAccounts } = wallet;
 
-  const handleEvent = useCallback(
-    ({ event }: StreamEvent) => {
-      if (event.type === 'account.created') {
-        void reloadAccounts().then(scheduleRefresh);
-        return;
-      }
+  // The wallet decides who the notifications are about; the provider decides
+  // what to say and keeps them across navigation.
+  useEffect(() => {
+    setIdentity({ meId, nameOf });
+  }, [setIdentity, meId, nameOf]);
 
-      const outgoing = event.fromAccountId === meId;
-      const incoming = event.toAccountId === meId;
-      if (outgoing || incoming) {
-        const other = nameOf(outgoing ? event.toAccountId : event.fromAccountId);
-        const amount = fmt(event.amountCents);
-        /**
-         * Toast, and only sometimes the bell.
-         *
-         * Every alert used to do both, which made the bell a second copy of
-         * the toasts and its badge meaningless. A toast acknowledges what you
-         * just did and is fine to miss; the bell is for things that happened
-         * *to* you or went wrong, which are worth finding later. So an
-         * outgoing payment completing is a toast alone - you pressed the
-         * button, you know - while money arriving, or anything being
-         * declined, held or stuck, also lands in the bell.
-         */
-        const alert = (text: string, tone: 'good' | 'bad' | 'warn', keep = true) => {
-          if (keep) notifications.push(text);
-          toast(text, tone);
-        };
-
-        if (event.type === 'payment.completed') {
-          alert(
-            outgoing ? `You paid ${other} ${amount}` : `${other} sent you ${amount}`,
-            'good',
-            !outgoing,
-          );
-        } else if (event.type === 'payment.failed' && outgoing) {
-          alert(
-            `Payment to ${other} declined: ${humanise(event.failureReason)}`,
-            'bad',
-          );
-        } else if (event.type === 'payment.held' && outgoing) {
-          alert(`${amount} to ${other} is held for review`, 'warn');
-        } else if (event.type === 'payment.approved' && outgoing) {
-          // The hold is what needed attention; being released is the all-clear.
-          alert(`${amount} to ${other} was released by a reviewer`, 'good', false);
-        } else if (event.type === 'payment.stuck' && outgoing) {
-          alert(`${amount} to ${other} is stuck - a refund is on its way`, 'warn');
-        } else if (event.type === 'payment.refunded' && outgoing) {
-          alert(`${amount} refunded to you`, 'warn');
+  useEffect(
+    () =>
+      subscribe(({ event }) => {
+        if (event.type === 'account.created') {
+          void reloadAccounts().then(scheduleRefresh);
+          return;
         }
-      }
 
-      // If the progress modal is watching this payment, advance it in place.
-      setWatched((current) => {
-        if (
-          current &&
-          event.paymentId === current.id &&
-          event.type !== 'payment.initiated'
-        ) {
-          getPayment(current.id)
-            .then((fresh) => setWatched((live) => (live?.id === fresh.id ? fresh : live)))
-            .catch(() => undefined);
-        }
-        return current;
-      });
+        // If the progress modal is watching this payment, advance it in place.
+        setWatched((current) => {
+          if (current && event.paymentId === current.id && event.type !== 'payment.initiated') {
+            getPayment(current.id)
+              .then((fresh) => setWatched((live) => (live?.id === fresh.id ? fresh : live)))
+              .catch(() => undefined);
+          }
+          return current;
+        });
 
-      scheduleRefresh();
-    },
-    [meId, nameOf, notifications, scheduleRefresh, reloadAccounts, toast],
+        scheduleRefresh();
+      }),
+    [subscribe, reloadAccounts, scheduleRefresh],
   );
 
-  const { connected } = useEventStream({ onEvent: handleEvent });
 
   const signedIn = Boolean(me);
   // Polled only while signed out, where it is the landing page's content.
@@ -155,7 +111,7 @@ export function WalletPage() {
   // reads as a toy; the system panel above the picker reads as a platform.
   if (!signedIn) {
     return (
-      <PageShell logo="W" title="LedgerFlow" subtitle="event-driven payments">
+      <PageShell logo="brand" title="LedgerFlow" subtitle="event-driven payments">
         <SystemPanel status={system} />
         <LoginScreen
           hidden={false}
@@ -176,17 +132,15 @@ export function WalletPage() {
           title="Wallet"
           connected={connected}
           actions={
-            <>
-              <NotificationBell
-                items={notifications.items}
-                unread={notifications.unread}
-                onOpen={notifications.markRead}
-                onClear={notifications.clear}
+            me && (
+              <AccountMenu
+                me={me}
+                accounts={wallet.accounts}
+                balances={wallet.balances}
+                onSwitch={wallet.signIn}
+                onSignOut={wallet.signOut}
               />
-              <button id="switch-user" className="ghost small" onClick={wallet.signOut}>
-                <span id="me-name">{me?.name ?? '…'}</span> ⌄
-              </button>
-            </>
+            )
           }
         >
           {meId && (
