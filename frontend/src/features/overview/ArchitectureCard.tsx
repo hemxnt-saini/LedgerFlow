@@ -28,7 +28,7 @@ export function ArchitectureCard() {
           </span>
         ))}
       </div>
-      <p className="tiny muted" style={{ marginTop: 12, marginBottom: 0 }}>
+      <p className="note">
         The write side owns Postgres and answers commands. The read side owns a
         Redis projection and answers queries. They never call each other —
         everything the read side knows arrived over Kafka, which is why it can

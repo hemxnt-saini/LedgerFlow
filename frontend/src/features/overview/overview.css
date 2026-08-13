@@ -1,7 +1,7 @@
 .tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--s-4);
 }
 @media (max-width: 900px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
@@ -10,8 +10,8 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-left: 3px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 12px;
+  border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-4);
   text-decoration: none;
   color: inherit;
 }
@@ -21,30 +21,61 @@ a.tile:hover { border-color: var(--accent); }
 .tile.bad  { border-left-color: var(--bad); }
 
 .tile .k {
-  font-size: 0.7rem;
+  font-size: var(--t-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.tile .v { font-size: 1.2rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile .v { font-size: 1.2rem; font-weight: var(--w-semi); font-variant-numeric: tabular-nums; }
 .tile.good .v { color: var(--good); }
 .tile.bad .v { color: var(--bad); }
-.tile .d { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.tile .d { font-size: var(--t-xs); color: var(--muted); margin-top: var(--s-1); }
 
 /* The architecture, stated once rather than assumed. */
 .pipeline-map {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
 }
 .pipeline-map .node {
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 11px;
+  border-radius: var(--r-full);
+  padding: var(--s-2) var(--s-4);
   background: var(--surface-2);
 }
 .pipeline-map .node.write { border-color: var(--accent); color: var(--accent); }
 .pipeline-map .node.read { border-color: var(--good); color: var(--good); }
 .pipeline-map .arrow { color: var(--muted); }
+
+/* Loading placeholders inside a status tile: same footprint as the real
+   value and detail, so the panel does not reflow when data lands. */
+.tile-ghost {
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  position: relative;
+  overflow: hidden;
+}
+.tile-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--border-strong) 60%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: sweep 1.4s var(--ease) infinite;
+}
+.v-ghost {
+  height: 22px;
+  width: 62%;
+  margin: var(--s-2) 0 var(--s-1);
+}
+.d-ghost {
+  height: 10px;
+  width: 85%;
+}

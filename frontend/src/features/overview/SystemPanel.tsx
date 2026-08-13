@@ -5,15 +5,16 @@ import { ago } from '../../lib/time';
 import type { SystemStatus } from './useSystemStatus';
 import './overview.css';
 
-type Tone = "good" | "warn" | "bad" | "idle";
+type Tone = 'good' | 'warn' | 'bad' | 'idle';
 
 function Tile({
   id,
   label,
   value,
   detail,
-  tone = "idle",
+  tone = 'idle',
   to,
+  loading = false,
 }: {
   id: string;
   label: string;
@@ -21,8 +22,24 @@ function Tile({
   detail: string;
   tone?: Tone;
   to?: string;
+  loading?: boolean;
 }) {
-  const body = (
+  /**
+   * An ellipsis next to a confident-looking detail line reads as data. While
+   * the first poll is outstanding the tiles showed "…" above "0 messages in
+   * the log", which is indistinguishable from a healthy, genuinely-zero
+   * system. A shimmer says "not yet", which is what is true.
+   */
+  const body = loading ? (
+    <>
+      <div className="k">{label}</div>
+      <div className="tile-ghost v-ghost" />
+      <div className="tile-ghost d-ghost" />
+      <span className="sr-only" id={id}>
+        Loading
+      </span>
+    </>
+  ) : (
     <>
       <div className="k">{label}</div>
       <div className="v" id={id}>
@@ -55,6 +72,9 @@ const upTone = (up: boolean | null): Tone =>
  */
 export function SystemPanel({ status }: { status: SystemStatus }) {
   const { books, kafka, recon } = status;
+  // Everything is set in one write, so one null means the first poll has not
+  // returned yet rather than that this particular figure is missing.
+  const loading = status.writeUp === null;
   const mainTopic = kafka?.topics.find(
     (topic) => topic.topic === kafka.mainTopic,
   );
@@ -89,6 +109,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
           value={yesNo(status.writeUp)}
           detail="Commands · Postgres · :4000"
           tone={upTone(status.writeUp)}
+          loading={loading}
         />
         <Tile
           id="sys-read"
@@ -96,6 +117,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
           value={yesNo(status.readUp)}
           detail="Queries · Redis · :4001"
           tone={upTone(status.readUp)}
+          loading={loading}
         />
         <Tile
           id="sys-books"
@@ -109,6 +131,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
               : `${fmt(books.totalDebitsCents)} debits = credits`
           }
           tone={booksTone}
+          loading={loading}
           to="/ledger"
         />
         <Tile
@@ -121,6 +144,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
               : `${ago(recon.startedAt)} · run #${recon.id}`
           }
           tone={reconTone}
+          loading={loading}
           to="/controls"
         />
         <Tile
@@ -132,6 +156,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
           detail="Held in the clearing account"
           tone={status.clearingCents ? "warn" : "idle"}
           to="/pipeline"
+          loading={loading}
         />
         <Tile
           id="sys-reviews"
@@ -140,6 +165,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
           detail="Payments held for a decision"
           tone={status.reviewCount ? "warn" : "idle"}
           to="/ops"
+          loading={loading}
         />
         <Tile
           id="sys-lag"
@@ -152,6 +178,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
           }
           tone={kafka?.consumerPaused ? "warn" : lag ? "warn" : "good"}
           to="/kafka"
+          loading={loading}
         />
         <Tile
           id="sys-dlq"
@@ -160,6 +187,7 @@ export function SystemPanel({ status }: { status: SystemStatus }) {
           detail="Dead letter queue"
           tone={parked ? "warn" : "idle"}
           to="/kafka"
+          loading={loading}
         />
       </div>
     </Card>
