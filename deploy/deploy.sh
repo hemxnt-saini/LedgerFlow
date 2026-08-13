@@ -32,14 +32,43 @@ echo "==> Starting"
 $COMPOSE up -d --remove-orphans
 
 echo "==> Waiting for the services to report healthy"
+READY=false
 for _ in $(seq 1 60); do
   if $COMPOSE exec -T payment-service wget -qO- http://localhost:4000/health >/dev/null 2>&1 &&
      $COMPOSE exec -T ledger-query-service wget -qO- http://localhost:4001/health >/dev/null 2>&1; then
     echo "    both services are up"
+    READY=true
     break
   fi
   sleep 3
 done
+
+if [ "$READY" != true ]; then
+  echo "    services did not come up" >&2
+  # Postgres only applies POSTGRES_PASSWORD when it initialises an empty data
+  # directory. Change it after the first deploy and the existing volume keeps
+  # the old one, so every connection is rejected and the services crash-loop
+  # with an error that never mentions .env.
+  if $COMPOSE logs payment-service 2>&1 | grep -qi 'password authentication failed'; then
+    cat >&2 <<'MSG'
+
+    Postgres is rejecting the password.
+
+    POSTGRES_PASSWORD in .env does not match the one the database was created
+    with. Postgres only reads that variable when it first initialises, so
+    editing it later has no effect on an existing volume.
+
+    Either put the original password back in .env, or - if the data is
+    disposable - delete the volume and start over:
+
+      docker compose -f docker-compose.yml -f docker-compose.prod.yml down -v
+      ./deploy/deploy.sh
+MSG
+  else
+    echo "    check the logs:  $COMPOSE logs payment-service" >&2
+  fi
+  exit 1
+fi
 
 # Only seed an empty system, so re-deploying never wipes or duplicates data.
 ACCOUNTS=$($COMPOSE exec -T payment-service \
