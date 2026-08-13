@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { LiveDot } from './LiveDot';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * Every destination, on every page.
@@ -11,12 +12,12 @@ import { LiveDot } from './LiveDot';
  * and states the scope up front.
  */
 const TABS = [
-  { to: "/", label: "Wallet", end: true },
-  { to: "/ledger", label: "Ledger" },
-  { to: "/ops", label: "Reviews" },
-  { to: "/controls", label: "Controls" },
-  { to: "/pipeline", label: "Pipeline" },
-  { to: "/kafka", label: "Kafka" },
+  { to: '/', label: 'Wallet', end: true },
+  { to: '/ledger', label: 'Ledger' },
+  { to: '/ops', label: 'Reviews' },
+  { to: '/controls', label: 'Controls' },
+  { to: '/pipeline', label: 'Pipeline' },
+  { to: '/kafka', label: 'Kafka' },
 ];
 
 interface Props {
@@ -29,27 +30,24 @@ interface Props {
   children: ReactNode;
 }
 
-export function PageShell({
-  logo,
-  title,
-  connected,
-  subtitle,
-  actions,
-  children,
-}: Props) {
+export function PageShell({ logo, title, connected, subtitle, actions, children }: Props) {
   return (
     <>
+      {/* Without this the tab order walks the whole nav before any content,
+          on every page, every time. */}
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+
       <header className="topbar">
         <div className="brand">
-          <div className="logo">{logo}</div>
+          <div className="logo" aria-hidden="true">
+            {logo}
+          </div>
           <div>
             <h1>{title}</h1>
             <div className="tiny muted">
-              {connected === undefined ? (
-                subtitle
-              ) : (
-                <LiveDot connected={connected} />
-              )}
+              {connected === undefined ? subtitle : <LiveDot connected={connected} />}
             </div>
           </div>
         </div>
@@ -60,17 +58,24 @@ export function PageShell({
               key={tab.to}
               to={tab.to}
               end={tab.end}
-              className={({ isActive }) => `tab${isActive ? " on" : ""}`}
+              // NavLink already sets aria-current="page" when active, which is
+              // the same fact the highlight conveys visually.
+              className={({ isActive }) => `tab${isActive ? ' on' : ''}`}
             >
               {tab.label}
             </NavLink>
           ))}
         </nav>
 
-        {actions !== undefined && <div className="row">{actions}</div>}
+        <div className="row">
+          {actions}
+          <ThemeToggle />
+        </div>
       </header>
 
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
     </>
   );
 }
