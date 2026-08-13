@@ -23,12 +23,12 @@ export function AccountsTable({ data, selectedId, onSelect }: Props) {
         <table>
           <thead>
             <tr>
-              <th>Account</th>
-              <th className="num">Debits</th>
-              <th className="num">Credits</th>
-              <th className="num">Ledger</th>
-              <th className="num">Cached</th>
-              <th>OK</th>
+              <th scope="col">Account</th>
+              <th scope="col" className="num">Debits</th>
+              <th scope="col" className="num">Credits</th>
+              <th scope="col" className="num">Ledger</th>
+              <th scope="col" className="num">Cached</th>
+              <th scope="col">OK</th>
             </tr>
           </thead>
           <tbody id="tb-accounts">
@@ -64,7 +64,7 @@ export function AccountsTable({ data, selectedId, onSelect }: Props) {
           </tfoot>
         </table>
       </div>
-      <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+      <p className="note">
         <strong>Ledger</strong> is recomputed from the journal every time this loads.
         <strong> Cached</strong> is the balance column the API serves. They are separate
         numbers on purpose — if they ever disagree, this table names the account.

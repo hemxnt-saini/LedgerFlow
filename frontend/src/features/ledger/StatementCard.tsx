@@ -54,12 +54,12 @@ export function StatementCard({
         <table>
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Leg</th>
-              <th>Counterparty</th>
-              <th className="num">Debit</th>
-              <th className="num">Credit</th>
-              <th className="num">Balance</th>
+              <th scope="col">Time</th>
+              <th scope="col">Leg</th>
+              <th scope="col">Counterparty</th>
+              <th scope="col" className="num">Debit</th>
+              <th scope="col" className="num">Credit</th>
+              <th scope="col" className="num">Balance</th>
             </tr>
           </thead>
           <tbody id="statement">
@@ -85,7 +85,7 @@ export function StatementCard({
         </div>
       )}
 
-      <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+      <p className="note">
         Opening {fmt(data.openingCents)} plus every movement above comes to{' '}
         {fmt(data.closingCents)} — and that is the balance the API serves for this
         account.

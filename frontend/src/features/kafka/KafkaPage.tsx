@@ -179,7 +179,7 @@ export function KafkaPage() {
 
         <Card>
           <CardHead title="The log" aside={<span id="topic-name">{topic?.topic ?? ''}</span>} />
-          <p className="small muted" style={{ marginTop: -4 }}>
+          <p className="note" style={{ marginTop: 0 }}>
             Kafka is not a queue that forgets. It is an append-only log the consumer walks
             along at its own pace, and everything below is read from the broker's own
             admin protocol - partitions, log start and end offsets, each group's committed
@@ -241,7 +241,7 @@ export function KafkaPage() {
                   empty
                 </span>
               </div>
-              <p className="tiny muted" style={{ marginTop: 10 }}>
+              <p className="note">
                 Messages are keyed by payment id, so every event for one payment lands on
                 the same partition and stays in order. Different payments spread across
                 partitions and can be processed in parallel - ordering where it matters,
@@ -258,15 +258,15 @@ export function KafkaPage() {
                   </span>
                 }
               />
-              <div className="scroll">
+              <div className={`scroll${messages.length === 0 ? ' hidden' : ''}`}>
                 <table>
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Partition</th>
-                      <th>Event</th>
-                      <th>Key</th>
-                      <th className="num">Lag was</th>
+                      <th scope="col">Time</th>
+                      <th scope="col">Partition</th>
+                      <th scope="col">Event</th>
+                      <th scope="col">Key</th>
+                      <th scope="col" className="num">Lag was</th>
                     </tr>
                   </thead>
                   <tbody id="messages">
@@ -323,18 +323,18 @@ export function KafkaPage() {
                   Park a poison message
                 </button>
               </div>
-              <p className="tiny muted" style={{ marginTop: 10 }}>
+              <p className="note">
                 <strong>Pause, then send a burst.</strong> The wallet keeps working and the
                 balances on the write side move immediately - but the read model freezes
                 and lag climbs. Resume and it catches up on its own. That gap is the whole
                 argument for putting a log between two services.
               </p>
-              <p className="tiny muted">
+              <p className="note">
                 <strong>Rebuild</strong> deletes the entire read model and rewinds every
                 partition to offset zero. It comes back identical, because the log is the
                 source of truth and Redis is only a cache of it.
               </p>
-              <p className="tiny muted">
+              <p className="note">
                 <strong>Park a poison message</strong> publishes bytes the consumer cannot
                 parse. It does not stop the projection and it is not dropped — it goes to
                 the parking topic below, where it can be inspected and replayed. Only
@@ -368,7 +368,7 @@ export function KafkaPage() {
                   ))
                 )}
               </div>
-              <p className="tiny muted" style={{ marginTop: 10 }}>
+              <p className="note">
                 Two independent groups read the same broker: one projects payments into the
                 read model, one watches the parking topic. Each keeps its own offsets, so
                 neither can affect the other's progress.
@@ -385,7 +385,7 @@ export function KafkaPage() {
                   setTimeout(() => void refreshDlq(), 1500);
                 }}
               />
-              <p className="tiny muted" style={{ marginTop: 10 }}>
+              <p className="note">
                 A message we cannot process is republished to a parking topic instead of
                 being dropped. Replay puts it back on the main topic; because every event
                 carries an id the read model has already claimed, replaying something that

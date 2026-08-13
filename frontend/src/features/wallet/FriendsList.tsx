@@ -22,6 +22,7 @@ export function FriendsList({ friends, balances, onPay }: Props) {
             <div
               key={friend.id}
               className="item"
+              role="button"
               tabIndex={0}
               onClick={() => onPay(friend.id)}
               onKeyDown={(event) => {
@@ -38,7 +39,7 @@ export function FriendsList({ friends, balances, onPay }: Props) {
                   {fmt(balances[friend.id] ?? friend.balanceCents)}
                 </div>
               </div>
-              <div className="small muted">Pay →</div>
+              <span className="row-cta" aria-hidden="true">Pay</span>
             </div>
           ))
         )}

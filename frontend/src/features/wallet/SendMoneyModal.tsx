@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import { sendPayment } from '../../api/payments';
+import { AlertIcon } from '../../components/Icon';
 import { Modal, ReviewLine } from '../../components/Modal';
 import { useToasts } from '../../hooks/useToasts';
 import { humanise } from '../../lib/labels';
@@ -140,7 +141,7 @@ export function SendMoneyModal({
           />
         )}
 
-        <div className="row" style={{ marginTop: 18 }}>
+        <div className="row" style={{ marginTop: 'var(--s-6)' }}>
           <button className="grow" onClick={() => setDraft(null)}>
             Back
           </button>
@@ -155,7 +156,7 @@ export function SendMoneyModal({
   return (
     <Modal onClose={onClose}>
       <h2>Send money</h2>
-      <form style={{ marginTop: 14 }} onSubmit={review}>
+      <form style={{ marginTop: 'var(--s-5)' }} onSubmit={review}>
         <label className="field">
           <span>To</span>
           <select id="send-to" value={to} onChange={(event) => setTo(event.target.value)}>
@@ -214,7 +215,7 @@ export function SendMoneyModal({
           </select>
         </label>
 
-        <p className="tiny muted" style={{ margin: '-6px 0 10px' }}>
+        <p className="note" style={{ margin: '0 0 var(--s-4)' }}>
           A transient fault is the common case in real systems: something breaks briefly.
           The saga retries with backoff and the payment still completes. Only a permanent
           fault exhausts the retries and gets the money returned.
@@ -222,13 +223,14 @@ export function SendMoneyModal({
 
         <div
           id="send-error"
-          className={`small${message ? '' : ' hidden'}`}
-          style={{ color: 'var(--bad)', marginTop: 10 }}
+          className={`form-alert${message ? '' : ' hidden'}`}
+          role="alert"
         >
-          {message}
+          {message && <AlertIcon size={14} />}
+          <span>{message}</span>
         </div>
 
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="row" style={{ marginTop: 'var(--s-6)' }}>
           <button type="button" id="send-cancel" className="grow" onClick={onClose}>
             Cancel
           </button>

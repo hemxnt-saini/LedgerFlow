@@ -84,7 +84,7 @@ export function PipelinePage() {
       >
         <Card>
           <CardHead title="What you are looking at" />
-          <p className="small muted" style={{ marginTop: -4 }}>
+          <p className="note" style={{ marginTop: 0 }}>
             Every row below is a real event that travelled the whole pipeline. The timings
             are measured, not simulated: the write side stamps the commit, the outbox
             publisher stamps the moment it actually reached Kafka, and the query service
@@ -138,17 +138,17 @@ export function PipelinePage() {
                 <h2>Live events</h2>
                 <span className="tiny muted" id="event-count">{`${traces.length} events`}</span>
               </div>
-              <div className="scroll">
+              <div className={`scroll${traces.length === 0 ? ' hidden' : ''}`}>
                 <table>
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Event</th>
-                      <th>Payment</th>
-                      <th className="num">Outbox</th>
-                      <th className="num">Transport</th>
-                      <th className="num">Project</th>
-                      <th className="num">Total</th>
+                      <th scope="col">Time</th>
+                      <th scope="col">Event</th>
+                      <th scope="col">Payment</th>
+                      <th scope="col" className="num">Outbox</th>
+                      <th scope="col" className="num">Transport</th>
+                      <th scope="col" className="num">Project</th>
+                      <th scope="col" className="num">Total</th>
                     </tr>
                   </thead>
                   <tbody id="events">
@@ -189,7 +189,7 @@ export function PipelinePage() {
                   {clearing}
                 </div>
               </div>
-              <p className="tiny muted" style={{ margin: 0 }}>
+              <p className="note">
                 A payment is two transactions, not one. Between them the money is neither
                 the sender's nor the receiver's - it belongs to the clearing account. That
                 is why the ledger still balances mid-saga, and why stranded money can
@@ -222,7 +222,7 @@ export function PipelinePage() {
                   );
                 })}
               </div>
-              <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+              <p className="note">
                 A median hides the tail, and the tail is what a latency promise is
                 written against. p95 is the number that decides whether a system feels
                 fast; p50 only says the common case was fine.

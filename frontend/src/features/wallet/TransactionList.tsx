@@ -110,6 +110,7 @@ export function TransactionList({ transactions, meId, nameOf, loading, onOpen }:
               <div
                 key={txn.paymentId}
                 className="item"
+                role="button"
                 tabIndex={0}
                 onClick={open}
                 onKeyDown={(event) => {

@@ -194,7 +194,7 @@ export function ControlsPage() {
                 </div>
               </div>
 
-              <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+              <p className="note">
                 Runs every 15 seconds whether anyone is watching or not — drift only found when
                 someone goes looking has already been live for a while. One corruption usually
                 trips several checks at once: a balance edited by $50 breaks that account&rsquo;s
@@ -218,13 +218,13 @@ export function ControlsPage() {
                       {busy === 'repair' ? 'Repairing…' : 'Repair from journal'}
                     </button>
                   </div>
-                  <p className="tiny muted" style={{ marginTop: 10 }}>
+                  <p className="note">
                     <strong>Break the books</strong> moves $50 onto a random balance without
                     posting a journal entry for it — the one thing double-entry is meant to make
                     impossible through the API. Nothing errors. The wallet keeps working. Within
                     fifteen seconds the control names the account and the amount.
                   </p>
-                  <p className="tiny muted">
+                  <p className="note">
                     <strong>Repair</strong> recomputes every cached balance by adding its journal
                     lines back up. It is safe because the journal is append-only: the ledger is
                     never what needs fixing, only the number cached beside it. No correcting entry
@@ -252,11 +252,11 @@ export function ControlsPage() {
                     <table>
                       <thead>
                         <tr>
-                          <th>Run</th>
-                          <th>When</th>
-                          <th>Status</th>
-                          <th className="num">Drift</th>
-                          <th className="num">ms</th>
+                          <th scope="col">Run</th>
+                          <th scope="col">When</th>
+                          <th scope="col">Status</th>
+                          <th scope="col" className="num">Drift</th>
+                          <th scope="col" className="num">ms</th>
                         </tr>
                       </thead>
                       <tbody id="recon-history">
@@ -274,7 +274,7 @@ export function ControlsPage() {
                       </tbody>
                     </table>
                   </div>
-                  <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+                  <p className="note">
                     Every pass is kept, so drift has a first sighting rather than just a red
                     light. The bars are total disagreement per run, oldest on the left.
                   </p>
