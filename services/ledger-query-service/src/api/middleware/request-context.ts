@@ -9,7 +9,9 @@ import { log, newCorrelationId, withContext } from '../../lib/logger';
 export function requestContext(req: Request, res: Response, next: NextFunction): void {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Headers', 'Content-Type, X-Correlation-Id');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  // Cache the preflight so a burst of calls does not double its request count.
+  res.set('Access-Control-Max-Age', '86400');
   res.set('Access-Control-Expose-Headers', 'X-Correlation-Id');
   if (req.method === 'OPTIONS') {
     res.sendStatus(204);
