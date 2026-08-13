@@ -71,9 +71,11 @@ MSG
 fi
 
 # Only seed an empty system, so re-deploying never wipes or duplicates data.
+# grep -o, not grep -c: the response is a single line of JSON, so counting
+# lines would report 1 no matter how many accounts came back.
 ACCOUNTS=$($COMPOSE exec -T payment-service \
-  wget -qO- http://localhost:4000/accounts 2>/dev/null | grep -c '"id"' || echo 0)
-if [ "$ACCOUNTS" -eq 0 ]; then
+  wget -qO- http://localhost:4000/accounts 2>/dev/null | grep -o '"id"' | wc -l | tr -d ' ')
+if [ "${ACCOUNTS:-0}" -eq 0 ]; then
   echo "==> No accounts yet, seeding the demo wallets"
   PAYMENTS_URL="https://$DOMAIN/api/write" ./scripts/seed.sh || \
     echo "    seeding failed - the certificate may still be issuing. Re-run ./deploy/seed-remote.sh in a minute."
