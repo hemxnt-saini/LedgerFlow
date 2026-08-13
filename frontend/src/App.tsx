@@ -21,7 +21,7 @@ const TITLES: Record<string, string> = {
 function DocumentTitle() {
   const { pathname } = useLocation();
   useEffect(() => {
-    document.title = TITLES[pathname] ?? 'Wallet';
+    document.title = `${TITLES[pathname] ?? 'Wallet'} · LedgerFlow`;
   }, [pathname]);
   return null;
 }

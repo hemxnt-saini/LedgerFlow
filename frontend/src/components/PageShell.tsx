@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { BrandMark } from './Icon';
 import { LiveDot } from './LiveDot';
 import { ThemeToggle } from './ThemeToggle';
+import { NotificationBell } from '../features/wallet/NotificationBell';
+import { useAppStream } from '../hooks/useAppStream';
 
 /**
  * Every destination, on every page.
@@ -31,6 +34,8 @@ interface Props {
 }
 
 export function PageShell({ logo, title, connected, subtitle, actions, children }: Props) {
+  const { notifications } = useAppStream();
+
   return (
     <>
       {/* Without this the tab order walks the whole nav before any content,
@@ -42,7 +47,7 @@ export function PageShell({ logo, title, connected, subtitle, actions, children 
       <header className="topbar">
         <div className="brand">
           <div className="logo" aria-hidden="true">
-            {logo}
+            {logo === 'brand' ? <BrandMark /> : logo}
           </div>
           <div>
             <h1>{title}</h1>
@@ -69,6 +74,12 @@ export function PageShell({ logo, title, connected, subtitle, actions, children 
 
         <div className="row">
           {actions}
+          <NotificationBell
+            items={notifications.items}
+            unread={notifications.unread}
+            onOpen={notifications.markRead}
+            onClear={notifications.clear}
+          />
           <ThemeToggle />
         </div>
       </header>

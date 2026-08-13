@@ -94,3 +94,29 @@ export const SearchIcon = (p: Props) => (
     <path d="m21 21-4.3-4.3" />
   </Svg>
 );
+
+/**
+ * The product mark, matching public/favicon.svg.
+ *
+ * Two unequal bars - a debit and a credit, the pair every journal entry is
+ * made of. Used where the brand rather than a specific page is meant.
+ */
+export const BrandMark = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <rect x="10" y="20" width="44" height="9" rx="4.5" fill="currentColor" />
+    <rect x="10" y="36" width="27" height="9" rx="4.5" fill="currentColor" opacity="0.72" />
+  </svg>
+);
+
+export const ChevronDownIcon = (p: Props) => (
+  <Svg {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Svg>
+);
+
+export const LogOutIcon = (p: Props) => (
+  <Svg {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="m16 17 5-5-5-5M21 12H9" />
+  </Svg>
+);
