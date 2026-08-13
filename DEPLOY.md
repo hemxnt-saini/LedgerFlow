@@ -26,11 +26,25 @@ So: one small always-on VM. The two sensible choices:
 
 | | Cost | Notes |
 | --- | --- | --- |
-| **Oracle Cloud Always Free** | £0 forever | 4 ARM cores, 24 GB RAM. Card required at signup; ARM capacity is often unavailable in busy regions, so it can take a few attempts. See [ARM note](#a-note-on-arm) below. |
-| **Hetzner CX22 / DigitalOcean** | ~€4–6/month | x86, so every image works with no doubt. Provisioning takes minutes. |
+| **Oracle Cloud Always Free** | £0 forever | **2 ARM cores, 12 GB RAM** (see the warning below). Card required at signup; ARM capacity is often unavailable in busy regions, so it can take a few attempts. |
+| **Hetzner CX22 / DigitalOcean** | ~€4–6/month | x86, no capacity lottery, provisions in minutes. |
 
-Anything with **2 GB RAM and 2 vCPUs** is comfortable. The stack idles at
-roughly 1.2 GB with the memory limits in `docker-compose.prod.yml`.
+Anything with **2 GB RAM and 2 vCPUs** is comfortable. The container memory
+limits in `docker-compose.prod.yml` total roughly 2.8 GB, and the stack idles
+well under that.
+
+> ### Oracle halved the free ARM allowance in 2026
+>
+> The Always Free Ampere allowance dropped from **4 OCPU / 24 GB** to
+> **2 OCPU / 12 GB**, effective 15 June 2026, with enforcement from
+> 18 August 2026. Oracle made no announcement — they edited the docs.
+>
+> **The console may still offer you 4 OCPU / 24 GB.** Taking it is the trap:
+> the instance creates successfully and is then stopped for exceeding the
+> allowance. Set the sliders to **2 OCPU and 12 GB** when you create it.
+>
+> This stack fits in 2/12 with room to spare, so the reduction costs you
+> nothing here. The 200 GB block storage and 10 TB/month egress are unchanged.
 
 ---
 
@@ -53,13 +67,35 @@ roughly 1.2 GB with the memory limits in `docker-compose.prod.yml`.
 
 ## Deploy
 
+### The short version
+
+Once the VM exists and DNS points at it, the whole server side is one command:
+
+```bash
+ssh ubuntu@YOUR_SERVER_IP
+curl -fsSL https://raw.githubusercontent.com/hemxnt-saini/LedgerFlow/develop/deploy/bootstrap.sh -o bootstrap.sh
+sudo bash bootstrap.sh ledgerflow.yourdomain.com you@example.com
+```
+
+It checks DNS before anything else, installs Docker, opens the host firewall
+and persists the rules, clones the repo, writes `.env` with a generated
+database password, deploys, schedules the nightly reset, and verifies the
+result. Every step checks before acting, so re-running it is safe.
+
+**It cannot open Oracle's VCN Security List** — that is a web console action,
+covered in step 2b below. Do that first or the script's final check will fail
+even though the stack is running correctly.
+
+The rest of this section is the same thing done by hand.
+
 ### 1. Install Docker on the server
 
 ```bash
-ssh root@YOUR_SERVER_IP
+ssh ubuntu@YOUR_SERVER_IP
 
-curl -fsSL https://get.docker.com | sh
-systemctl enable --now docker
+curl -fsSL https://get.docker.com | sudo sh
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"   # log out and back in for this to take effect
 docker --version
 ```
 
@@ -120,9 +156,20 @@ Fill in all four values:
 ```bash
 DOMAIN=ledgerflow.yourdomain.com     # must already resolve to this server
 EMAIL=you@example.com                # required; Caddy will not start without it
-POSTGRES_PASSWORD=                   # generate one: openssl rand -base64 24
+POSTGRES_PASSWORD=                   # generate one: openssl rand -hex 24
 DEMO_ENDPOINTS=true                  # see "Demo controls" below
 ```
+
+> **Use `-hex`, not `-base64`.** The password is interpolated into
+> `postgres://payments:PASSWORD@postgres:5432/payments`, and base64's `/`
+> terminates the authority section of a URL. At 32 base64 characters that
+> happens about two times in five, and the services then fail to start with an
+> `Invalid URL` that says nothing about the password. Hex has no such
+> characters.
+>
+> Whatever you choose, **it is fixed at first deploy**. Postgres only reads
+> `POSTGRES_PASSWORD` when it initialises an empty data directory, so editing
+> it later locks the services out of their own database.
 
 ### 5. Deploy
 
@@ -337,6 +384,22 @@ or the domain in `.env` not matching the A record.
 **Caddy exits immediately.**
 `EMAIL` is empty in `.env`. Caddy fails to parse an empty `email` directive.
 
+**The services crash-loop with "password authentication failed".**
+`POSTGRES_PASSWORD` no longer matches what the database was created with.
+Postgres only applies that variable when it initialises an empty data
+directory, so changing it after the first deploy has no effect on the existing
+volume. Put the original back, or destroy the data and start clean:
+
+```bash
+dc down -v && ./deploy/deploy.sh
+```
+
+`deploy.sh` detects this case and says so rather than timing out silently.
+
+**The services crash-loop with "Invalid URL".**
+A `/` in `POSTGRES_PASSWORD` — almost always from `openssl rand -base64`. Use
+`openssl rand -hex 24` and recreate the volume as above.
+
 **The site loads but every number is blank.**
 The services are not reachable through the proxy. Check
 `curl https://your-domain/api/write/health` — if that fails but
@@ -378,3 +441,19 @@ The production overlay was run end to end on a local machine with
 | SSE through the proxy | `hello` frame within 3 s, then both payment frames — streaming, not buffered |
 | A payment end to end | `PROCESSING` → `COMPLETED`, read model updated |
 | The app in a real browser | Signed in, live dot connected, 8 status tiles, 3 Kafka partitions, books balanced, **no console errors** |
+
+The bootstrap script's individual stages were exercised in an Ubuntu 24.04
+container rather than assumed:
+
+| Check | Result |
+| --- | --- |
+| DNS preflight, domain does not resolve | Refuses, names the fix |
+| DNS preflight, domain points elsewhere | Refuses, prints both addresses |
+| DNS preflight, `SKIP_DNS_CHECK=true` | Proceeds |
+| Firewall against Oracle's stock ruleset | `ACCEPT :80/:443` inserted **above** the `REJECT`, so traffic arrives |
+| Firewall re-run | No duplicate rules |
+| `.env` generation | All four keys present, mode `600`, hex password |
+| `.env` re-run | Untouched — the password is never regenerated under a live database |
+| Deploy with a mismatched password | Fails in seconds with the cause, instead of timing out |
+| Account count before seeding | Reports the real number (`grep -c` counted lines, so it always said 1) |
+| Full round trip on a generated password | Account created, payment `COMPLETED`, balances `97500` / `7500`, reconciliation `OK` with zero drift |
