@@ -1,17 +1,17 @@
-.page-ledger table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.page-ledger table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
 .page-ledger th,
 .page-ledger td {
   text-align: left;
-  padding: 7px 9px;
+  padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .page-ledger th {
-  font-size: 0.68rem;
+  font-size: var(--t-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--w-semi);
 }
 .page-ledger td.num,
 .page-ledger th.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -19,7 +19,7 @@
 .page-ledger tbody tr.selectable:hover { background: var(--surface-2); }
 .page-ledger tbody tr.on { background: var(--accent-soft); }
 .page-ledger tfoot td {
-  font-weight: 680;
+  font-weight: var(--w-bold);
   border-top: 2px solid var(--text);
   border-bottom: none;
   font-variant-numeric: tabular-nums;
@@ -32,9 +32,9 @@
 .page-ledger .verdict {
   display: flex;
   align-items: center;
-  gap: 12px;
-  border-radius: 12px;
-  padding: 14px 16px;
+  gap: var(--s-4);
+  border-radius: var(--r-md);
+  padding: var(--s-5) var(--s-5);
   border: 1px solid var(--border);
   background: var(--surface-2);
 }
@@ -43,15 +43,15 @@
 .page-ledger .verdict .mark { font-size: 1.6rem; line-height: 1; }
 .page-ledger .verdict.ok .mark { color: var(--good); }
 .page-ledger .verdict.bad .mark { color: var(--bad); }
-.page-ledger .verdict .headline { font-weight: 660; font-size: 0.98rem; }
+.page-ledger .verdict .headline { font-weight: var(--w-semi); font-size: 0.98rem; }
 
 /* Debits on the left, credits on the right, the way a ledger is written. */
 .page-ledger .columns {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 10px;
+  gap: var(--s-4);
   align-items: center;
-  margin-top: 12px;
+  margin-top: var(--s-4);
 }
 @media (max-width: 620px) {
   .page-ledger .columns { grid-template-columns: 1fr; }
@@ -60,31 +60,31 @@
 .page-ledger .column {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: var(--r-md);
+  padding: var(--s-4);
   text-align: center;
 }
 .page-ledger .column .k {
-  font-size: 0.68rem;
+  font-size: var(--t-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.page-ledger .column .v { font-size: 1.4rem; font-weight: 660; font-variant-numeric: tabular-nums; }
-.page-ledger .equals { font-size: 1.3rem; color: var(--muted); font-weight: 600; }
+.page-ledger .column .v { font-size: var(--t-xl); font-weight: var(--w-semi); font-variant-numeric: tabular-nums; }
+.page-ledger .equals { font-size: var(--t-xl); color: var(--muted); font-weight: var(--w-semi); }
 
 .page-ledger .journal-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 8px;
+  gap: var(--s-3);
   max-height: 460px;
   overflow-y: auto;
 }
 
 .page-ledger .entry {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-4);
   background: var(--surface-2);
 }
 .page-ledger .entry.broken { border-color: var(--bad); }
@@ -92,27 +92,27 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 7px;
+  gap: var(--s-4);
+  margin-bottom: var(--s-3);
 }
-.page-ledger .entry-lines { display: grid; gap: 3px; }
+.page-ledger .entry-lines { display: grid; gap: var(--s-1); }
 .page-ledger .line {
   display: grid;
   grid-template-columns: 58px 1fr auto;
-  gap: 10px;
-  font-size: 0.82rem;
+  gap: var(--s-4);
+  font-size: var(--t-sm);
   font-variant-numeric: tabular-nums;
 }
-.page-ledger .line .dir { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; padding-top: 2px; }
+.page-ledger .line .dir { font-size: var(--t-xs); font-weight: var(--w-bold); letter-spacing: 0.05em; padding-top: 2px; }
 .page-ledger .line .dir.DEBIT { color: var(--bad); }
 .page-ledger .line .dir.CREDIT { color: var(--good); }
 
 .page-ledger .leg {
-  font-size: 0.64rem;
-  font-weight: 700;
+  font-size: var(--t-xs);
+  font-weight: var(--w-bold);
   letter-spacing: 0.05em;
-  padding: 2px 7px;
-  border-radius: 999px;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-full);
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--muted);

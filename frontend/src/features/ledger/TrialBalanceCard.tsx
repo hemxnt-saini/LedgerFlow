@@ -108,7 +108,7 @@ export function TrialBalanceCard({ data }: { data: TrialBalance }) {
         </div>
       </div>
 
-      <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+      <p className="note">
         Opening a wallet is itself a journal entry — the funding account is debited
         for exactly what the wallet is credited. That is why the system is a closed
         set of books and every balance added together comes to zero.

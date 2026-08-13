@@ -107,7 +107,7 @@ export function OpsPage() {
               <div className="v">Clearing</div>
             </div>
           </div>
-          <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+          <p className="note">
             Every payment here is already authorised — the sender has been debited and the
             funds are in the clearing account. Securing the money first is what makes a
             hold safe: it cannot be spent elsewhere while someone deliberates, and the
@@ -163,7 +163,7 @@ export function OpsPage() {
               ))
             )}
           </div>
-          <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+          <p className="note">
             <strong>Release</strong> puts the payment back on the ordinary settlement path
             rather than settling it here, so there is one route to completion and the
             retry and compensation behaviour is unchanged. <strong>Refuse</strong> runs the

@@ -14,7 +14,7 @@ export function ActivityFeed({ activity, nameOf }: Props) {
   return (
     <Card>
       <CardHead title="Live activity" aside="everyone" />
-      <p className="tiny muted" style={{ margin: '-4px 0 10px' }}>
+      <p className="note" style={{ margin: '0 0 var(--s-4)' }}>
         Pushed over SSE from the query service as events land. A payment takes about a
         second to appear - that gap is the CQRS read model catching up, not a bug.
       </p>

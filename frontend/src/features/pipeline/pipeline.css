@@ -1,19 +1,19 @@
 /* Scoped to the page so the two monitors can size their tables differently. */
 
-.page-pipeline table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.page-pipeline table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
 .page-pipeline th,
 .page-pipeline td {
   text-align: left;
-  padding: 7px 9px;
+  padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .page-pipeline th {
-  font-size: 0.7rem;
+  font-size: var(--t-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--w-semi);
 }
 .page-pipeline tbody tr { cursor: pointer; }
 .page-pipeline tbody tr:hover { background: var(--surface-2); }
@@ -25,40 +25,40 @@
 .page-pipeline td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .page-pipeline .scroll { max-height: 460px; overflow: auto; }
 
-.page-pipeline .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.page-pipeline .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
 @media (max-width: 760px) {
   .page-pipeline .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .page-pipeline .stage {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px;
+  border-radius: var(--r-md);
+  padding: var(--s-4);
 }
 .page-pipeline .stage .n {
-  font-size: 0.68rem;
+  font-size: var(--t-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.page-pipeline .stage .t { font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-.page-pipeline .stage .d { font-size: 0.72rem; color: var(--muted); margin-top: 3px; white-space: normal; }
+.page-pipeline .stage .t { font-size: var(--t-xl); font-weight: var(--w-semi); font-variant-numeric: tabular-nums; }
+.page-pipeline .stage .d { font-size: var(--t-xs); color: var(--muted); margin-top: var(--s-1); white-space: normal; }
 
 .page-pipeline pre {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 11px;
+  border-radius: var(--r-md);
+  padding: var(--s-4);
   overflow: auto;
-  font-size: 0.76rem;
-  margin: 8px 0 0;
+  font-size: var(--t-sm);
+  margin: var(--s-3) 0 0;
 }
 
-.page-pipeline .lifecycle { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.78rem; }
+.page-pipeline .lifecycle { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; font-size: var(--t-sm); }
 .page-pipeline .lifecycle .node {
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 3px 10px;
+  border-radius: var(--r-full);
+  padding: var(--s-1) var(--s-4);
   background: var(--surface-2);
 }
 .page-pipeline .lifecycle .arrow { color: var(--muted); }

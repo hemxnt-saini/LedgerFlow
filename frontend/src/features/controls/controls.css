@@ -1,17 +1,17 @@
-.page-controls table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.page-controls table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
 .page-controls th,
 .page-controls td {
   text-align: left;
-  padding: 7px 9px;
+  padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .page-controls th {
-  font-size: 0.68rem;
+  font-size: var(--t-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--w-semi);
 }
 .page-controls td.num,
 .page-controls th.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -21,79 +21,79 @@
 .page-controls .verdict {
   display: flex;
   align-items: center;
-  gap: 14px;
-  border-radius: 12px;
-  padding: 16px;
+  gap: var(--s-5);
+  border-radius: var(--r-md);
+  padding: var(--s-5);
   border: 1px solid var(--border);
   background: var(--surface-2);
 }
 .page-controls .verdict.OK { border-color: var(--good); background: var(--good-soft); }
 .page-controls .verdict.WARN { border-color: var(--warn); background: var(--warn-soft); }
 .page-controls .verdict.DRIFT { border-color: var(--bad); background: var(--bad-soft); }
-.page-controls .verdict .mark { font-size: 1.9rem; line-height: 1; }
+.page-controls .verdict .mark { font-size: var(--t-2xl); line-height: 1; }
 .page-controls .verdict.OK .mark { color: var(--good); }
 .page-controls .verdict.WARN .mark { color: var(--warn); }
 .page-controls .verdict.DRIFT .mark { color: var(--bad); }
-.page-controls .verdict .headline { font-weight: 660; font-size: 1.02rem; }
+.page-controls .verdict .headline { font-weight: var(--w-semi); font-size: var(--t-lg); }
 
 /* One row per check, so a healthy system still shows what it verified. */
-.page-controls .checks { display: grid; gap: 8px; }
+.page-controls .checks { display: grid; gap: var(--s-3); }
 .page-controls .check {
   display: grid;
   grid-template-columns: 26px 1fr;
-  gap: 11px;
+  gap: var(--s-4);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 12px;
+  border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-4);
   background: var(--surface-2);
 }
 .page-controls .check.DRIFT { border-color: var(--bad); }
 .page-controls .check.WARN { border-color: var(--warn); }
-.page-controls .check .mark { font-size: 1.05rem; line-height: 1.3; text-align: center; }
+.page-controls .check .mark { font-size: var(--t-lg); line-height: 1.3; text-align: center; }
 .page-controls .check.OK .mark { color: var(--good); }
 .page-controls .check.WARN .mark { color: var(--warn); }
 .page-controls .check.DRIFT .mark { color: var(--bad); }
-.page-controls .check .name { font-weight: 600; font-size: 0.9rem; }
-.page-controls .check .proves { font-size: 0.76rem; color: var(--muted); margin-top: 3px; }
+.page-controls .check .name { font-weight: var(--w-semi); font-size: var(--t-md); }
+.page-controls .check .proves { font-size: var(--t-sm); color: var(--muted); margin-top: var(--s-1); }
 .page-controls .check .hit {
-  font-size: 0.78rem;
-  margin-top: 7px;
-  padding: 7px 9px;
-  border-radius: 8px;
+  font-size: var(--t-sm);
+  margin-top: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-sm);
   background: var(--surface);
   border: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
 }
 
 .page-controls .sev {
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: var(--t-xs);
+  font-weight: var(--w-bold);
   letter-spacing: 0.05em;
-  padding: 2px 7px;
-  border-radius: 999px;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-full);
   border: 1px solid var(--border);
 }
 .page-controls .sev.OK { color: var(--good); border-color: var(--good); }
 .page-controls .sev.WARN { color: var(--warn); border-color: var(--warn); }
 .page-controls .sev.DRIFT { color: var(--bad); border-color: var(--bad); }
 
-.page-controls .controls-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.page-controls .controls-row { display: flex; flex-wrap: wrap; gap: var(--s-3); }
 .page-controls pre {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 10px;
+  border-radius: var(--r-md);
+  padding: var(--s-4);
   /* The control's raw response is long; let it scroll rather than stretch
      the card past everything beside it. */
   max-height: 260px;
   overflow: auto;
-  font-size: 0.74rem;
-  margin: 10px 0 0;
+  font-size: var(--t-sm);
+  margin: var(--s-4) 0 0;
 }
 
 /* Drift over time: a run that has never been anything but green proves less
    than one you can watch go red and come back. */
-.page-controls .sparks { display: flex; align-items: flex-end; gap: 3px; height: 44px; margin-top: 8px; }
+.page-controls .sparks { display: flex; align-items: flex-end; gap: var(--s-1); height: 44px; margin-top: var(--s-3); }
 .page-controls .spark {
   flex: 1;
   min-width: 4px;

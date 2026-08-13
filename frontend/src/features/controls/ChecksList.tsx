@@ -44,7 +44,7 @@ export function ChecksList({ findings }: { findings: Finding[] }) {
           </div>
         ))}
       </div>
-      <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+      <p className="note">
         The control runs its own queries rather than reusing the write path's
         repositories. A check that shares the code it is checking verifies nothing.
       </p>

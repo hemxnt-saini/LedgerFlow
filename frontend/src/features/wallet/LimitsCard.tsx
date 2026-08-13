@@ -62,7 +62,7 @@ export function LimitsCard({ data }: { data: AccountLimitsView | null }) {
         </div>
       </div>
 
-      <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+      <p className="note">
         These are re-checked inside the same transaction that debits you, with your
         account row locked — so twenty payments sent at once cannot slip past the cap
         together. This panel is the advisory copy; the transaction is the authority.

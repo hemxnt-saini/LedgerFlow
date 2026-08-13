@@ -42,7 +42,7 @@ export function JournalList({ entries }: { entries: JournalEntry[] }) {
           ))
         )}
       </div>
-      <p className="tiny muted" style={{ marginTop: 10, marginBottom: 0 }}>
+      <p className="note">
         Append-only. A refund is not an edit — it posts a new COMPENSATE pair in the
         opposite direction, so the original AUTHORISE stays exactly where it was.
       </p>
