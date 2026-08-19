@@ -180,6 +180,16 @@ for Redis, injected through the same interface the real client satisfies.
 The Maven wrapper downloads Maven on first use, so a JDK 21+ is the only
 prerequisite.
 
+Against a running stack there are two more:
+
+```bash
+./scripts/verify.sh            # every endpoint, refusal and invariant - 248 assertions
+./scripts/verify-failures.sh   # kill the broker, kill the service mid-saga, then reset
+```
+
+The first is safe and leaves a few test wallets behind. The second stops
+containers and empties both stores, so it is for a laptop, not a deployment.
+
 Beyond those, the system has been exercised against the live stack: every
 validation boundary, concurrent racing payments and refunds, killing the
 payment service mid-saga, killing Kafka mid-flight, killing Redis,
