@@ -1,0 +1,39 @@
+# Only what Spring has to know before any bean exists. Every other knob lives
+# in Config.java, which is the one place this service reads the environment.
+server:
+  port: ${PORT:4001}
+  shutdown: graceful
+
+spring:
+  application:
+    name: ledger-query-service
+  main:
+    banner-mode: off
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+      timeout: 2s
+      connect-timeout: 2s
+  task:
+    scheduling:
+      # Only the SSE keep-alive is scheduled here.
+      pool:
+        size: 1
+      thread-name-prefix: worker-
+  mvc:
+    throw-exception-if-no-handler-found: true
+    # An open event stream is not an idle request; it must never be timed out by
+    # the servlet container.
+    async:
+      request-timeout: -1
+  web:
+    resources:
+      add-mappings: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+
+logging:
+  level:
+    root: warn

@@ -30,7 +30,7 @@ So: one small always-on VM. The two sensible choices:
 | **Hetzner CX22 / DigitalOcean** | ~€4–6/month | x86, no capacity lottery, provisions in minutes. |
 
 Anything with **2 GB RAM and 2 vCPUs** is comfortable. The container memory
-limits in `docker-compose.prod.yml` total roughly 2.8 GB, and the stack idles
+limits in `docker-compose.prod.yml` total roughly 3.1 GB, and the stack idles
 well under that.
 
 > ### Oracle halved the free ARM allowance in 2026
@@ -199,7 +199,8 @@ It builds every image, starts the stack, waits for both services to report
 healthy, and seeds the five demo wallets **only if the system is empty** — so
 re-running it to deploy an update never wipes or duplicates your data.
 
-First run takes 3–5 minutes, mostly building the two Node images.
+First run takes 5–8 minutes, mostly building the two Java images: Maven
+downloads its dependencies once into a build layer that later builds reuse.
 
 ### 6. Open it
 
@@ -346,7 +347,8 @@ manifest. All six do — checked, not assumed:
 | `redis:7-alpine` | 386, amd64, arm, **arm64**, ppc64le, riscv64, s390x |
 | `caddy:2-alpine` | amd64, arm, **arm64**, ppc64le, riscv64, s390x |
 | `nginx:alpine` | 386, amd64, arm, **arm64**, ppc64le, riscv64, s390x |
-| `node:20-alpine` | amd64, arm, **arm64**, ppc64le, s390x |
+| `maven:3.9-eclipse-temurin-21` | amd64, **arm64**, ppc64le, riscv64, s390x |
+| `eclipse-temurin:21-jre-alpine` | amd64, **arm64** |
 
 Reproduce with:
 

@@ -133,9 +133,13 @@ SELECT sum(balance_cents) FROM accounts;   -- must always be 0
 
 ## Stack
 
-Node 20 · TypeScript · Express · Postgres 16 · Redis 7 · Kafka (KRaft) ·
-Docker Compose. Frontend is React 18 + Vite, built to static assets and served
-by nginx.
+Java 21 · Spring Boot 3.5 · JdbcTemplate · Spring Kafka · Postgres 16 · Redis 7 ·
+Kafka (KRaft) · Docker Compose. Frontend is React 18 + Vite, built to static
+assets and served by nginx.
+
+No JPA. Every statement in the write side was written for a reason — `SELECT
+FOR UPDATE` in id order, `FOR UPDATE SKIP LOCKED`, `FILTER` aggregates cast to
+`bigint` — and an ORM would either hide those or have to be argued with.
 
 ## API
 
@@ -163,13 +167,18 @@ GET  /pipeline                  POST /dlq/:id/replay
 ## Tests
 
 ```bash
-cd services/payment-service      && npm install && npm test
-cd services/ledger-query-service && npm install && npm test
+cd services/payment-service      && ./mvnw test
+cd services/ledger-query-service && ./mvnw test
 ```
 
-76 unit tests, no infrastructure required — the money maths, the state machine,
-the projection and the reconciliation rules are pure functions with zero
-imports of Express, pg, ioredis or kafkajs.
+127 unit tests, no infrastructure required — the money maths, the state machine,
+the spending controls, the risk screen, the projection and the reconciliation
+rules are pure functions in a `domain` package that imports no Spring, no JDBC,
+no Redis and no Kafka. The projection is tested against an in-memory stand-in
+for Redis, injected through the same interface the real client satisfies.
+
+The Maven wrapper downloads Maven on first use, so a JDK 21+ is the only
+prerequisite.
 
 Beyond those, the system has been exercised against the live stack: every
 validation boundary, concurrent racing payments and refunds, killing the

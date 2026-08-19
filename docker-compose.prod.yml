@@ -77,7 +77,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          # A JVM wants more resident memory than the Node process did: the heap
+          # is capped at 70% of this by the image's MaxRAMPercentage, and the
+          # rest is metaspace, code cache and thread stacks.
+          memory: 512M
 
   ledger-query-service:
     ports: !override []
@@ -87,7 +90,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 512M
 
   frontend:
     ports: !override []
