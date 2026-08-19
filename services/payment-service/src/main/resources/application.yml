@@ -1,0 +1,43 @@
+# Only what Spring has to know before any bean exists. Every other knob lives
+# in Config.java, which is the one place this service reads the environment -
+# so the full set is discoverable in one file, exactly as config.ts was.
+server:
+  port: ${PORT:4000}
+  shutdown: graceful
+
+spring:
+  application:
+    name: payment-service
+  main:
+    banner-mode: off
+  # Boot understands a redis:// URL directly, so REDIS_URL needs no translation.
+  # DATABASE_URL is a libpq URI and does need one - see DataSourceConfig.
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+      timeout: 2s
+      connect-timeout: 2s
+  task:
+    scheduling:
+      # The outbox publisher, the settle worker, the compensation worker and the
+      # reconciliation pass all tick on their own schedule; one thread each so a
+      # slow pass cannot hold up another poller.
+      pool:
+        size: 4
+      thread-name-prefix: worker-
+  mvc:
+    # A JSON API answers an unknown path in JSON, not with a servlet error page.
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+
+# Application logs are single-line JSON written by lib/Log; leaving the
+# framework at WARN keeps stdout parseable with jq the way it was before.
+logging:
+  level:
+    root: warn

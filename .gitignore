@@ -1,5 +1,6 @@
 node_modules/
 dist/
+target/
 
 # macOS
 .DS_Store
