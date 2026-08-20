@@ -20,6 +20,7 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="site-footer-inner">
         <div className="site-footer-who">
+          <span className="site-footer-label">Engineered by</span>
           <span className="site-footer-name">{AUTHOR.name}</span>
           <span className="tiny muted">{AUTHOR.role}</span>
         </div>
