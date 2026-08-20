@@ -1428,3 +1428,70 @@ label.field > .tiny {
   border-radius: 0 0 var(--r-md) var(--r-md);
   padding-top: var(--s-3);
 }
+
+/* Author credit. Sits below the content on every page, deliberately quiet -
+   it should be findable without pulling attention off the data above it. */
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: var(--s-8);
+  /* The page already pads its bottom; the footer supplies its own so the
+     rule sits tight against the content rather than floating in the gap. */
+  padding: var(--s-6) var(--s-6) var(--s-7);
+}
+.site-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+}
+.site-footer-who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.site-footer-name {
+  font-size: var(--t-sm);
+  font-weight: var(--w-semi);
+  color: var(--text-2);
+}
+.site-footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  font-size: var(--t-sm);
+  color: var(--muted);
+  text-decoration: none;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+.site-footer-link:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.site-footer-link:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .site-footer-inner {
+    /* Stacked and left-aligned rather than squeezed: two pills plus a name
+       do not fit on a phone without the gap collapsing to nothing. */
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

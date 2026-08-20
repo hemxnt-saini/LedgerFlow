@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { BrandMark } from './Icon';
 import { LiveDot } from './LiveDot';
+import { SiteFooter } from './SiteFooter';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationBell } from '../features/wallet/NotificationBell';
 import { useAppStream } from '../hooks/useAppStream';
@@ -87,6 +88,8 @@ export function PageShell({ logo, title, connected, subtitle, actions, children 
       <main id="main" tabIndex={-1}>
         {children}
       </main>
+
+      <SiteFooter />
     </>
   );
 }
