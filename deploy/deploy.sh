@@ -72,9 +72,12 @@ fi
 
 # Only seed an empty system, so re-deploying never wipes or duplicates data.
 # grep -o, not grep -c: the response is a single line of JSON, so counting
-# lines would report 1 no matter how many accounts came back.
+# lines would report 1 no matter how many accounts came back. The `|| ACCOUNTS=0`
+# is load-bearing: grep exits 1 when it finds no accounts (the normal state on a
+# fresh deploy), and under set -eo pipefail that would kill the whole script
+# before the check below ever runs - silently, with no error printed.
 ACCOUNTS=$($COMPOSE exec -T payment-service \
-  wget -qO- http://localhost:4000/accounts 2>/dev/null | grep -o '"id"' | wc -l | tr -d ' ')
+  wget -qO- http://localhost:4000/accounts 2>/dev/null | grep -o '"id"' | wc -l | tr -d ' ') || ACCOUNTS=0
 if [ "${ACCOUNTS:-0}" -eq 0 ]; then
   echo "==> No accounts yet, seeding the demo wallets"
   PAYMENTS_URL="https://$DOMAIN/api/write" ./scripts/seed.sh || \
