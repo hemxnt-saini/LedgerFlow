@@ -1452,6 +1452,14 @@ label.field > .tiny {
   flex-direction: column;
   gap: var(--s-1);
 }
+/* Same treatment as every other small label in the app: xs, tracked, semi. */
+.site-footer-label {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--w-semi);
+  color: var(--muted);
+}
 .site-footer-name {
   font-size: var(--t-sm);
   font-weight: var(--w-semi);
